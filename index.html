@@ -310,24 +310,11 @@
             branch: 'main'
         };
 
-        // For GitHub Pages, we can fetch directly from the same origin (much faster than API)
-        const getDirectUrl = (path) => {
-            // When hosted on GitHub Pages, files are served from the root
-            return `/${path}`;
-        };
+        // For GitHub Pages, fetch directly from the same origin (fastest)
+        const getDirectUrl = (path) => `/${path}`;
         
-        // Fallback to raw GitHub URL if direct doesn't work
-        const getGitHubRawUrl = (path) => {
-            return `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${path}`;
-        };
-
-        // GitHub API URL (only used for directory listing, cached aggressively)
-        const getGitHubApiUrl = (path = '') => {
-            return `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path}?ref=${GITHUB_CONFIG.branch}`;
-        };
-        
-        // Cache for directory listings to avoid repeated API calls
-        const dirCache = new Map();
+        // File cache to avoid re-fetching
+        const fileCache = new Map();
 
         // DOM Elements
         const el = {
@@ -850,66 +837,79 @@
             return mergeCount;
         };
 
-        // Fetch a file - try direct first (fast), fallback to raw GitHub
+        // Fast file fetch with caching
         const fetchFile = async (path) => {
+            if (fileCache.has(path)) return fileCache.get(path);
             try {
-                // Try direct fetch first (same origin, very fast)
-                let response = await fetch(getDirectUrl(path));
+                const response = await fetch(getDirectUrl(path));
                 if (response.ok) {
-                    return await response.text();
-                }
-                
-                // Fallback to raw GitHub URL
-                response = await fetch(getGitHubRawUrl(path));
-                if (response.ok) {
-                    return await response.text();
+                    const text = await response.text();
+                    fileCache.set(path, text);
+                    return text;
                 }
                 return null;
             } catch (e) {
-                console.error(`Failed to fetch ${path}:`, e);
                 return null;
             }
         };
 
-        // Fetch directory listing from GitHub API with caching
-        const fetchDirectory = async (path) => {
-            // Check cache first
-            if (dirCache.has(path)) {
-                return dirCache.get(path);
+        // Try to fetch a file, return null if it doesn't exist (no error logging)
+        const tryFetchFile = async (path) => {
+            try {
+                const response = await fetch(getDirectUrl(path), { method: 'HEAD' });
+                if (response.ok) {
+                    return fetchFile(path);
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        };
+
+        // Load manifest or discover structure
+        const loadManifest = async () => {
+            const text = await fetchFile('manifest.json');
+            if (text) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse manifest:', e);
+                }
+            }
+            return null;
+        };
+
+        // Discover seasons by trying known patterns
+        const discoverSeasons = async () => {
+            // Try manifest first
+            const manifest = await loadManifest();
+            if (manifest && manifest.seasons) {
+                return manifest.seasons.sort().reverse();
             }
             
-            try {
-                const url = getGitHubApiUrl(path);
-                const response = await fetch(url);
-                if (!response.ok) return [];
-                const data = await response.json();
-                const result = Array.isArray(data) ? data : [];
-                
-                // Cache the result
-                dirCache.set(path, result);
-                return result;
-            } catch (e) {
-                console.error(`Failed to fetch directory ${path}:`, e);
-                return [];
+            // Fallback: try common season years
+            const currentYear = new Date().getFullYear();
+            const possibleSeasons = [];
+            for (let year = currentYear + 1; year >= 2020; year--) {
+                possibleSeasons.push(`${year}-${year + 1}`);
             }
-        };
-
-        // Discover available seasons from the repo
-        const discoverSeasons = async () => {
-            const rootContents = await fetchDirectory('');
-            const seasons = rootContents
-                .filter(item => item.type === 'dir' && /^\d{4}-\d{4}$/.test(item.name))
-                .map(item => item.name)
-                .sort()
-                .reverse(); // Most recent first
-            return seasons;
+            
+            // Check which seasons exist by trying to fetch their LD folder
+            const checks = await Promise.all(
+                possibleSeasons.map(async (season) => {
+                    const response = await fetch(getDirectUrl(`${season}/LD/`), { method: 'HEAD' }).catch(() => null);
+                    return response && response.ok ? season : null;
+                })
+            );
+            
+            return checks.filter(Boolean);
         };
 
         // Populate season dropdown
         const populateSeasonDropdown = async () => {
             const seasons = await discoverSeasons();
             if (seasons.length === 0) {
-                console.error('No seasons found in repository');
+                el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
                 return;
             }
             
@@ -917,63 +917,118 @@
                 `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
             ).join('');
             
-            // Load the first (most recent) season
             loadSeasonData(seasons[0]);
         };
 
-        // Discover tournament structure for a season - PARALLEL loading for speed
-        const discoverTournaments = async (season) => {
-            const ldPath = `${season}/LD`;
-            const ldContents = await fetchDirectory(ldPath);
+        // Discover tournaments from manifest or by scanning
+        const discoverTournaments = async (season, manifest) => {
+            // If manifest has tournament data, use it
+            if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournaments.length > 0) {
+                return manifest.data[season].tournaments;
+            }
             
-            // Get all tournament directories
-            const tournamentDirs = ldContents.filter(item => item.type === 'dir');
+            // Otherwise, we need to discover - fetch the index page and parse links
+            // This is a workaround since we can't list directories on GitHub Pages
+            // We'll try to fetch a tournaments.txt file that lists tournament names
+            const tournamentsListText = await fetchFile(`${season}/LD/tournaments.txt`);
+            if (tournamentsListText) {
+                const tournamentNames = tournamentsListText.split('\n').map(t => t.trim()).filter(Boolean);
+                return await Promise.all(tournamentNames.map(async (name) => {
+                    return await discoverTournamentStructure(season, name);
+                }));
+            }
             
-            // Fetch all tournament contents in parallel
-            const tournamentPromises = tournamentDirs.map(async (item) => {
-                const tournamentName = item.name;
-                const tournamentPath = `${ldPath}/${tournamentName}`;
-                const tournamentContents = await fetchDirectory(tournamentPath);
-                
-                const tournament = {
-                    name: tournamentName,
-                    path: tournamentPath,
-                    entries: null,
-                    prelims: [],
-                    elims: []
-                };
-                
-                // Find entries file and subdirectories
-                const subDirPromises = [];
-                for (const subItem of tournamentContents) {
-                    if (subItem.type === 'file' && subItem.name.toLowerCase().includes('entries')) {
-                        tournament.entries = subItem.name;
-                    } else if (subItem.type === 'dir') {
-                        const folderName = subItem.name.toLowerCase();
-                        const folderPath = `${tournamentPath}/${subItem.name}`;
-                        
-                        // Fetch folder contents in parallel
-                        subDirPromises.push(
-                            fetchDirectory(folderPath).then(folderContents => {
-                                const csvFiles = folderContents
-                                    .filter(f => f.type === 'file' && f.name.endsWith('.csv'))
-                                    .map(f => f.name);
-                                
-                                if (folderName.includes('prelim')) {
-                                    tournament.prelims = csvFiles;
-                                } else if (folderName.includes('elim')) {
-                                    tournament.elims = csvFiles;
-                                }
-                            })
+            // Last resort: try to parse HTML directory listing (works on some servers)
+            try {
+                const response = await fetch(getDirectUrl(`${season}/LD/`));
+                if (response.ok) {
+                    const html = await response.text();
+                    const tournamentNames = extractLinksFromHTML(html);
+                    if (tournamentNames.length > 0) {
+                        const tournaments = await Promise.all(
+                            tournamentNames.map(name => discoverTournamentStructure(season, name))
                         );
+                        return tournaments.filter(t => t.prelims.length > 0 || t.elims.length > 0);
                     }
                 }
-                
-                await Promise.all(subDirPromises);
-                return tournament;
-            });
+            } catch (e) {}
             
-            return Promise.all(tournamentPromises);
+            return [];
+        };
+
+        // Extract directory links from HTML (GitHub Pages directory listing)
+        const extractLinksFromHTML = (html) => {
+            const links = [];
+            const regex = /href="([^"]+)\/"/g;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+                const name = match[1];
+                if (name && !name.startsWith('.') && !name.startsWith('http') && name !== '..') {
+                    links.push(decodeURIComponent(name));
+                }
+            }
+            return links;
+        };
+
+        // Discover structure for a single tournament
+        const discoverTournamentStructure = async (season, tournamentName) => {
+            const basePath = `${season}/LD/${tournamentName}`;
+            const tournament = {
+                name: tournamentName,
+                path: basePath,
+                entries: null,
+                prelims: [],
+                elims: []
+            };
+
+            // Try to find entries file
+            const entriesFile = await fetchFile(`${basePath}/entries.csv`);
+            if (entriesFile) {
+                tournament.entries = 'entries.csv';
+                tournament.entriesContent = entriesFile;
+            }
+
+            // Try to discover prelim files by trying common patterns
+            const prelimPromises = [];
+            for (let i = 1; i <= 10; i++) {
+                prelimPromises.push(
+                    fetch(getDirectUrl(`${basePath}/Prelims/Round${i}.csv`), { method: 'HEAD' })
+                        .then(r => r.ok ? `Round${i}.csv` : null)
+                        .catch(() => null)
+                );
+                prelimPromises.push(
+                    fetch(getDirectUrl(`${basePath}/Prelims/Tabroom-${1400000 + i}.csv`), { method: 'HEAD' })
+                        .then(r => r.ok ? `Tabroom-${1400000 + i}.csv` : null)
+                        .catch(() => null)
+                );
+            }
+
+            // Try to discover prelims from HTML listing
+            try {
+                const prelimsHtml = await fetch(getDirectUrl(`${basePath}/Prelims/`)).then(r => r.ok ? r.text() : '');
+                const prelimFiles = extractCSVLinksFromHTML(prelimsHtml);
+                tournament.prelims = prelimFiles;
+            } catch (e) {}
+
+            // Try to discover elims from HTML listing  
+            try {
+                const elimsHtml = await fetch(getDirectUrl(`${basePath}/Elims/`)).then(r => r.ok ? r.text() : '');
+                const elimFiles = extractCSVLinksFromHTML(elimsHtml);
+                tournament.elims = elimFiles;
+            } catch (e) {}
+
+            return tournament;
+        };
+
+        // Extract CSV file links from HTML
+        const extractCSVLinksFromHTML = (html) => {
+            const links = [];
+            const regex = /href="([^"]+\.csv)"/gi;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+                links.push(decodeURIComponent(match[1]));
+            }
+            return links;
         };
 
         const loadSeasonData = async (season) => {
@@ -997,38 +1052,79 @@
             const loadingText = document.getElementById('loadingText');
             const updateLoading = (text) => { if (loadingText) loadingText.textContent = text; };
             
-            updateLoading('Discovering tournaments...');
-            log(`Loading ${season} data from GitHub...`);
+            updateLoading('Loading...');
 
             try {
-                // Discover tournaments from GitHub
-                console.log(`Discovering tournaments for ${season}...`);
-                const tournaments = await discoverTournaments(season);
+                // Load manifest for fast loading
+                const manifest = await loadManifest();
+                
+                updateLoading('Discovering tournaments...');
+                const tournaments = await discoverTournaments(season, manifest);
                 
                 if (tournaments.length === 0) {
-                    throw new Error(`No tournaments found for ${season}. Check that ${season}/LD/ exists.`);
+                    throw new Error(`No tournaments found for ${season}. Make sure manifest.json is configured or ${season}/LD/ exists with proper structure.`);
                 }
                 
                 console.log(`Found ${tournaments.length} tournaments`);
-                updateLoading(`Loading entries...`);
+                updateLoading(`Loading ${tournaments.length} tournaments...`);
 
-                // Load ALL entries files in parallel (much faster)
-                const entriesPromises = tournaments
-                    .filter(t => t.entries)
-                    .map(async (tournament) => {
-                        const path = `${tournament.path}/${tournament.entries}`;
-                        const text = await fetchFile(path);
-                        if (text) {
-                            return { tName: tournament.name, text };
-                        }
-                        return null;
-                    });
+                // Build list of ALL files to fetch
+                const allFilesToFetch = [];
                 
-                const entriesResults = await Promise.all(entriesPromises);
+                for (const tournament of tournaments) {
+                    // Entries file
+                    if (tournament.entries && !tournament.entriesContent) {
+                        allFilesToFetch.push({
+                            type: 'entries',
+                            tournament: tournament.name,
+                            path: `${tournament.path}/${tournament.entries}`
+                        });
+                    }
+                    
+                    // Prelim files
+                    for (const filename of (tournament.prelims || [])) {
+                        allFilesToFetch.push({
+                            type: 'prelim',
+                            tournament: tournament.name,
+                            tournamentData: tournament,
+                            filename,
+                            path: `${tournament.path}/Prelims/${filename}`
+                        });
+                    }
+                    
+                    // Elim files
+                    for (const filename of (tournament.elims || [])) {
+                        allFilesToFetch.push({
+                            type: 'elim',
+                            tournament: tournament.name,
+                            tournamentData: tournament,
+                            filename,
+                            path: `${tournament.path}/Elims/${filename}`
+                        });
+                    }
+                }
+                
+                // Fetch ALL files in parallel (maximum speed)
+                const fetchResults = await Promise.all(
+                    allFilesToFetch.map(async (file) => {
+                        const text = await fetchFile(file.path);
+                        return { ...file, text };
+                    })
+                );
+                
+                // Process entries first
                 let totalEntries = 0;
-                for (const result of entriesResults) {
-                    if (result) {
-                        const mappings = parseEntriesFile(result.text, result.tName);
+                for (const result of fetchResults) {
+                    if (result.type === 'entries' && result.text) {
+                        const mappings = parseEntriesFile(result.text, result.tournament);
+                        totalEntries += mappings.length;
+                    }
+                }
+                
+                // Also process pre-loaded entries content
+                for (const tournament of tournaments) {
+                    if (tournament.entriesContent) {
+                        const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
                         totalEntries += mappings.length;
                     }
                 }
@@ -1037,40 +1133,9 @@
                 
                 const mergeCount = buildMergeMappings();
                 if (mergeCount > 0) console.log(`Merged ${mergeCount} duplicate entries.`);
-                
-                updateLoading(`Loading ${tournaments.length} tournaments...`);
 
-                // Pre-fetch ALL round files for ALL tournaments in parallel
-                const allRoundFiles = [];
-                for (const tournament of tournaments) {
-                    const tName = tournament.name;
-                    for (const filename of (tournament.prelims || [])) {
-                        allRoundFiles.push({
-                            type: 'prelim',
-                            tournament: tName,
-                            tournamentData: tournament,
-                            filename,
-                            path: `${tournament.path}/Prelims/${filename}`
-                        });
-                    }
-                    for (const filename of (tournament.elims || [])) {
-                        allRoundFiles.push({
-                            type: 'elim',
-                            tournament: tName,
-                            tournamentData: tournament,
-                            filename,
-                            path: `${tournament.path}/Elims/${filename}`
-                        });
-                    }
-                }
-                
-                // Fetch all files in parallel
-                const fileContents = await Promise.all(
-                    allRoundFiles.map(async (file) => {
-                        const text = await fetchFile(file.path);
-                        return { ...file, text };
-                    })
-                );
+                // Group round files by tournament
+                const fileContents = fetchResults.filter(f => f.type === 'prelim' || f.type === 'elim');
                 
                 // Group by tournament
                 const tournamentFiles = {};
