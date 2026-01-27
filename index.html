@@ -1202,9 +1202,13 @@
 
                             const roundName = filename.replace('.csv', '').replace(/tabroom-?\d*/i, '').trim() || `Prelim ${getRoundNumber(filename)}`;
                             
-                            // Original: No walkover check in prelims
-                            processRound(aff, neg, affWon, affSpeaks, tournamentInfo, 'aff', roundName);
-                            processRound(neg, aff, negWon, negSpeaks, tournamentInfo, 'neg', roundName);
+                            // Check for same-school matchup (walkover) in prelims
+                            const affSchool = aff.split(' ').slice(0, -1).join(' ');
+                            const negSchool = neg.split(' ').slice(0, -1).join(' ');
+                            const isWalkover = state.settings.walkoversEnabled && (affSchool === negSchool);
+                            
+                            processRound(aff, neg, affWon, affSpeaks, tournamentInfo, 'aff', roundName, isWalkover);
+                            processRound(neg, aff, negWon, negSpeaks, tournamentInfo, 'neg', roundName, isWalkover);
 
                             // Update tournament stats for UI
                             const updatePrelimStats = (id, won) => {
