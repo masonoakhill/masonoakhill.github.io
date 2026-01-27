@@ -315,6 +315,29 @@
         
         // File cache to avoid re-fetching
         const fileCache = new Map();
+        
+        // Known file patterns to try when discovering rounds
+        const KNOWN_PRELIM_PATTERNS = [
+            // Tabroom format
+            ...Array.from({length: 20}, (_, i) => `Tabroom-${1405599 + i}.csv`),
+            ...Array.from({length: 20}, (_, i) => `Tabroom-${1400000 + i}.csv`),
+            ...Array.from({length: 20}, (_, i) => `Tabroom-${1410000 + i}.csv`),
+            // Round format
+            ...Array.from({length: 10}, (_, i) => `Round${i + 1}.csv`),
+            ...Array.from({length: 10}, (_, i) => `round${i + 1}.csv`),
+            ...Array.from({length: 10}, (_, i) => `R${i + 1}.csv`),
+        ];
+        
+        const KNOWN_ELIM_PATTERNS = [
+            'Octas.csv', 'octas.csv', 'Octafinals.csv', 'octafinals.csv',
+            'Quarters.csv', 'quarters.csv', 'Quarterfinals.csv', 'quarterfinals.csv',
+            'Semis.csv', 'semis.csv', 'Semifinals.csv', 'semifinals.csv',
+            'Finals.csv', 'finals.csv',
+            'Double Octas.csv', 'double-octas.csv',
+            // Tabroom format
+            ...Array.from({length: 10}, (_, i) => `Tabroom-${1405605 + i}.csv`),
+            ...Array.from({length: 10}, (_, i) => `Tabroom-${1400010 + i}.csv`),
+        ];
 
         // DOM Elements
         const el = {
@@ -853,17 +876,20 @@
             }
         };
 
+        // Fast batch file existence check and fetch
+        const batchFetchFiles = async (paths) => {
+            const results = await Promise.all(
+                paths.map(async (path) => {
+                    const text = await fetchFile(path);
+                    return text ? { path, text } : null;
+                })
+            );
+            return results.filter(Boolean);
+        };
+        
         // Try to fetch a file, return null if it doesn't exist (no error logging)
         const tryFetchFile = async (path) => {
-            try {
-                const response = await fetch(getDirectUrl(path), { method: 'HEAD' });
-                if (response.ok) {
-                    return fetchFile(path);
-                }
-                return null;
-            } catch (e) {
-                return null;
-            }
+            return fetchFile(path);
         };
 
         // Load manifest or discover structure
@@ -883,11 +909,25 @@
         const discoverSeasons = async () => {
             // Try manifest first
             const manifest = await loadManifest();
-            if (manifest && manifest.seasons) {
+            if (manifest && manifest.seasons && manifest.seasons.length > 0) {
                 return manifest.seasons.sort().reverse();
             }
             
-            // Fallback: try common season years
+            // Try to get directory listing from root
+            try {
+                const response = await fetch(getDirectUrl('/'));
+                if (response.ok) {
+                    const html = await response.text();
+                    const links = extractLinksFromHTML(html);
+                    const seasonPattern = /^\d{4}-\d{4}$/;
+                    const seasons = links.filter(link => seasonPattern.test(link));
+                    if (seasons.length > 0) {
+                        return seasons.sort().reverse();
+                    }
+                }
+            } catch (e) {}
+            
+            // Fallback: try common season years in parallel
             const currentYear = new Date().getFullYear();
             const possibleSeasons = [];
             for (let year = currentYear + 1; year >= 2020; year--) {
@@ -897,8 +937,12 @@
             // Check which seasons exist by trying to fetch their LD folder
             const checks = await Promise.all(
                 possibleSeasons.map(async (season) => {
-                    const response = await fetch(getDirectUrl(`${season}/LD/`), { method: 'HEAD' }).catch(() => null);
-                    return response && response.ok ? season : null;
+                    try {
+                        const response = await fetch(getDirectUrl(`${season}/LD/`));
+                        return response.ok ? season : null;
+                    } catch (e) {
+                        return null;
+                    }
                 })
             );
             
@@ -922,111 +966,111 @@
 
         // Discover tournaments from manifest or by scanning
         const discoverTournaments = async (season, manifest) => {
-            // If manifest has tournament data, use it
+            // If manifest has tournament data, use it (fastest path)
             if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournaments.length > 0) {
-                return manifest.data[season].tournaments;
-            }
-            
-            // Otherwise, we need to discover - fetch the index page and parse links
-            // This is a workaround since we can't list directories on GitHub Pages
-            // We'll try to fetch a tournaments.txt file that lists tournament names
-            const tournamentsListText = await fetchFile(`${season}/LD/tournaments.txt`);
-            if (tournamentsListText) {
-                const tournamentNames = tournamentsListText.split('\n').map(t => t.trim()).filter(Boolean);
-                return await Promise.all(tournamentNames.map(async (name) => {
-                    return await discoverTournamentStructure(season, name);
+                // Return manifest data directly - entries will be fetched later
+                return manifest.data[season].tournaments.map(t => ({
+                    name: t.name,
+                    path: t.path,
+                    entries: t.entries,
+                    prelims: t.prelims || [],
+                    elims: t.elims || []
                 }));
             }
             
-            // Last resort: try to parse HTML directory listing (works on some servers)
-            try {
-                const response = await fetch(getDirectUrl(`${season}/LD/`));
-                if (response.ok) {
-                    const html = await response.text();
-                    const tournamentNames = extractLinksFromHTML(html);
-                    if (tournamentNames.length > 0) {
-                        const tournaments = await Promise.all(
-                            tournamentNames.map(name => discoverTournamentStructure(season, name))
-                        );
-                        return tournaments.filter(t => t.prelims.length > 0 || t.elims.length > 0);
-                    }
-                }
-            } catch (e) {}
+            // Try to parse HTML directory listing from GitHub Pages
+            const response = await fetch(getDirectUrl(`${season}/LD/`));
+            if (!response.ok) return [];
             
-            return [];
+            const html = await response.text();
+            const tournamentNames = extractLinksFromHTML(html);
+            
+            if (tournamentNames.length === 0) return [];
+            
+            // Discover all tournaments in parallel
+            const tournaments = await Promise.all(
+                tournamentNames.map(name => discoverTournamentStructure(season, name))
+            );
+            
+            return tournaments.filter(t => t.prelims.length > 0 || t.elims.length > 0 || t.entries);
         };
 
         // Extract directory links from HTML (GitHub Pages directory listing)
         const extractLinksFromHTML = (html) => {
+            if (!html) return [];
             const links = [];
-            const regex = /href="([^"]+)\/"/g;
+            // Match directory links ending with /
+            const regex = /href=["']([^"']+)\/["']/g;
             let match;
             while ((match = regex.exec(html)) !== null) {
-                const name = match[1];
-                if (name && !name.startsWith('.') && !name.startsWith('http') && name !== '..') {
-                    links.push(decodeURIComponent(name));
+                let name = match[1];
+                // Remove any path prefix, just get the directory name
+                if (name.includes('/')) {
+                    name = name.split('/').pop();
+                }
+                name = decodeURIComponent(name);
+                if (name && !name.startsWith('.') && !name.startsWith('http') && name !== '..' && !links.includes(name)) {
+                    links.push(name);
                 }
             }
             return links;
         };
 
-        // Discover structure for a single tournament
-        const discoverTournamentStructure = async (season, tournamentName) => {
+        // Discover structure for a single tournament - uses manifest data if available
+        const discoverTournamentStructure = async (season, tournamentName, manifestData = null) => {
             const basePath = `${season}/LD/${tournamentName}`;
             const tournament = {
                 name: tournamentName,
                 path: basePath,
                 entries: null,
+                entriesContent: null,
                 prelims: [],
                 elims: []
             };
 
-            // Try to find entries file
-            const entriesFile = await fetchFile(`${basePath}/entries.csv`);
+            // If we have manifest data, use it directly (fastest)
+            if (manifestData) {
+                tournament.entries = manifestData.entries;
+                tournament.prelims = manifestData.prelims || [];
+                tournament.elims = manifestData.elims || [];
+                return tournament;
+            }
+
+            // Otherwise discover by trying to fetch the HTML directory listing
+            // GitHub Pages serves directory listings we can parse
+            const [entriesFile, prelimsHtml, elimsHtml] = await Promise.all([
+                fetchFile(`${basePath}/entries.csv`),
+                fetch(getDirectUrl(`${basePath}/Prelims/`)).then(r => r.ok ? r.text() : '').catch(() => ''),
+                fetch(getDirectUrl(`${basePath}/Elims/`)).then(r => r.ok ? r.text() : '').catch(() => '')
+            ]);
+
             if (entriesFile) {
                 tournament.entries = 'entries.csv';
                 tournament.entriesContent = entriesFile;
             }
 
-            // Try to discover prelim files by trying common patterns
-            const prelimPromises = [];
-            for (let i = 1; i <= 10; i++) {
-                prelimPromises.push(
-                    fetch(getDirectUrl(`${basePath}/Prelims/Round${i}.csv`), { method: 'HEAD' })
-                        .then(r => r.ok ? `Round${i}.csv` : null)
-                        .catch(() => null)
-                );
-                prelimPromises.push(
-                    fetch(getDirectUrl(`${basePath}/Prelims/Tabroom-${1400000 + i}.csv`), { method: 'HEAD' })
-                        .then(r => r.ok ? `Tabroom-${1400000 + i}.csv` : null)
-                        .catch(() => null)
-                );
-            }
-
-            // Try to discover prelims from HTML listing
-            try {
-                const prelimsHtml = await fetch(getDirectUrl(`${basePath}/Prelims/`)).then(r => r.ok ? r.text() : '');
-                const prelimFiles = extractCSVLinksFromHTML(prelimsHtml);
-                tournament.prelims = prelimFiles;
-            } catch (e) {}
-
-            // Try to discover elims from HTML listing  
-            try {
-                const elimsHtml = await fetch(getDirectUrl(`${basePath}/Elims/`)).then(r => r.ok ? r.text() : '');
-                const elimFiles = extractCSVLinksFromHTML(elimsHtml);
-                tournament.elims = elimFiles;
-            } catch (e) {}
+            tournament.prelims = extractCSVLinksFromHTML(prelimsHtml);
+            tournament.elims = extractCSVLinksFromHTML(elimsHtml);
 
             return tournament;
         };
 
         // Extract CSV file links from HTML
         const extractCSVLinksFromHTML = (html) => {
+            if (!html) return [];
             const links = [];
-            const regex = /href="([^"]+\.csv)"/gi;
+            // Match href="something.csv" or href='something.csv'
+            const regex = /href=["']([^"']+\.csv)["']/gi;
             let match;
             while ((match = regex.exec(html)) !== null) {
-                links.push(decodeURIComponent(match[1]));
+                let filename = decodeURIComponent(match[1]);
+                // Remove any path prefix, just get the filename
+                if (filename.includes('/')) {
+                    filename = filename.split('/').pop();
+                }
+                if (filename && !links.includes(filename)) {
+                    links.push(filename);
+                }
             }
             return links;
         };
@@ -1068,16 +1112,18 @@
                 console.log(`Found ${tournaments.length} tournaments`);
                 updateLoading(`Loading ${tournaments.length} tournaments...`);
 
-                // Build list of ALL files to fetch
+                // Build list of ALL files to fetch in a single batch
                 const allFilesToFetch = [];
                 
                 for (const tournament of tournaments) {
+                    const basePath = tournament.path || `${season}/LD/${tournament.name}`;
+                    
                     // Entries file
                     if (tournament.entries && !tournament.entriesContent) {
                         allFilesToFetch.push({
                             type: 'entries',
                             tournament: tournament.name,
-                            path: `${tournament.path}/${tournament.entries}`
+                            path: `${basePath}/${tournament.entries}`
                         });
                     }
                     
@@ -1088,7 +1134,7 @@
                             tournament: tournament.name,
                             tournamentData: tournament,
                             filename,
-                            path: `${tournament.path}/Prelims/${filename}`
+                            path: `${basePath}/Prelims/${filename}`
                         });
                     }
                     
@@ -1099,10 +1145,12 @@
                             tournament: tournament.name,
                             tournamentData: tournament,
                             filename,
-                            path: `${tournament.path}/Elims/${filename}`
+                            path: `${basePath}/Elims/${filename}`
                         });
                     }
                 }
+                
+                updateLoading(`Fetching ${allFilesToFetch.length} files...`);
                 
                 // Fetch ALL files in parallel (maximum speed)
                 const fetchResults = await Promise.all(
