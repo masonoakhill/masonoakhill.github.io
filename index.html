@@ -6,15 +6,6 @@
     <title>LD Debate Rankings</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
         * {
             box-sizing: border-box;
         }
@@ -109,7 +100,7 @@
                 <div class="flex items-center gap-3">
                     <div id="loadingIndicator" class="hidden flex items-center gap-2 text-white/60 text-sm">
                         <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
-                        <span>Loading...</span>
+                        <span id="loadingText">Loading...</span>
                     </div>
                     <button id="exportBtn" disabled class="btn flex items-center gap-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white/60 px-4 py-2 rounded-lg text-sm font-medium">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -274,7 +265,7 @@
             
             <div id="emptyState" class="text-center py-16 text-white/30">
                 <svg class="w-12 h-12 mx-auto mb-3 opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                <p class="text-sm">Import a season folder to view rankings</p>
+                <p class="text-sm">Loading rankings data...</p>
             </div>
 
             <div id="rankingsContainer" class="hidden divide-y divide-white/5">
@@ -312,19 +303,31 @@
         const BID_MULTIPLIERS = { 'octas': 1.3, 'quarters': 1.2, 'semis': 1.1, 'finals': 1.0 };
         const ELIM_BONUSES = { 'quarters': 10, 'semis': 20, 'finals': 30, 'winner': 40 };
 
-        // GitHub Configuration
+        // GitHub Configuration - Since we're on GitHub Pages, we can fetch directly from the same origin
         const GITHUB_CONFIG = {
             owner: 'masonoakhill',
             repo: 'masonoakhill.github.io',
             branch: 'main'
         };
 
-        // Cache for the repo structure to avoid hitting API rate limits
-        let repoTreeCache = null;
-
+        // For GitHub Pages, we can fetch directly from the same origin (much faster than API)
+        const getDirectUrl = (path) => {
+            // When hosted on GitHub Pages, files are served from the root
+            return `/${path}`;
+        };
+        
+        // Fallback to raw GitHub URL if direct doesn't work
         const getGitHubRawUrl = (path) => {
             return `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${path}`;
         };
+
+        // GitHub API URL (only used for directory listing, cached aggressively)
+        const getGitHubApiUrl = (path = '') => {
+            return `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path}?ref=${GITHUB_CONFIG.branch}`;
+        };
+        
+        // Cache for directory listings to avoid repeated API calls
+        const dirCache = new Map();
 
         // DOM Elements
         const el = {
@@ -847,85 +850,134 @@
             return mergeCount;
         };
 
-        // Fetch a CSV file from GitHub
-        const fetchCSV = async (url) => {
+        // Fetch a file - try direct first (fast), fallback to raw GitHub
+        const fetchFile = async (path) => {
             try {
-                const response = await fetch(url);
-                if (!response.ok) return null;
-                return await response.text();
+                // Try direct fetch first (same origin, very fast)
+                let response = await fetch(getDirectUrl(path));
+                if (response.ok) {
+                    return await response.text();
+                }
+                
+                // Fallback to raw GitHub URL
+                response = await fetch(getGitHubRawUrl(path));
+                if (response.ok) {
+                    return await response.text();
+                }
+                return null;
             } catch (e) {
+                console.error(`Failed to fetch ${path}:`, e);
                 return null;
             }
         };
 
-        // Fetch repository structure from GitHub API (recursive tree)
-        const fetchRepoStructure = async () => {
-            if (repoTreeCache) return repoTreeCache;
+        // Fetch directory listing from GitHub API with caching
+        const fetchDirectory = async (path) => {
+            // Check cache first
+            if (dirCache.has(path)) {
+                return dirCache.get(path);
+            }
             
-            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/git/trees/${GITHUB_CONFIG.branch}?recursive=1`;
             try {
+                const url = getGitHubApiUrl(path);
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`GitHub API Error: ${response.status}`);
+                if (!response.ok) return [];
                 const data = await response.json();
-                if (data.truncated) console.warn('Warning: Repository is too large, some files may be missing.');
-                repoTreeCache = data.tree;
-                return repoTreeCache;
+                const result = Array.isArray(data) ? data : [];
+                
+                // Cache the result
+                dirCache.set(path, result);
+                return result;
             } catch (e) {
-                console.error('Failed to fetch repo structure:', e);
-                return null;
+                console.error(`Failed to fetch directory ${path}:`, e);
+                return [];
             }
         };
 
-        // Initialize Application
-        const initApp = async () => {
-            el.loadingIndicator.classList.remove('hidden');
-            const tree = await fetchRepoStructure();
-            
-            if (!tree) {
-                el.emptyState.querySelector('p').textContent = 'Failed to connect to GitHub repository.';
-                el.loadingIndicator.classList.add('hidden');
+        // Discover available seasons from the repo
+        const discoverSeasons = async () => {
+            const rootContents = await fetchDirectory('');
+            const seasons = rootContents
+                .filter(item => item.type === 'dir' && /^\d{4}-\d{4}$/.test(item.name))
+                .map(item => item.name)
+                .sort()
+                .reverse(); // Most recent first
+            return seasons;
+        };
+
+        // Populate season dropdown
+        const populateSeasonDropdown = async () => {
+            const seasons = await discoverSeasons();
+            if (seasons.length === 0) {
+                console.error('No seasons found in repository');
                 return;
             }
+            
+            el.seasonSelect.innerHTML = seasons.map(season => 
+                `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
+            ).join('');
+            
+            // Load the first (most recent) season
+            loadSeasonData(seasons[0]);
+        };
 
-            // Find all season directories (format: YYYY-YYYY)
-            const seasons = new Set();
-            tree.forEach(item => {
-                if (item.type === 'tree') {
-                    // Match pattern "20XX-20XX" at the start of path
-                    const match = item.path.match(/^(\d{4}-\d{4})/);
-                    if (match) {
-                        seasons.add(match[1]);
+        // Discover tournament structure for a season - PARALLEL loading for speed
+        const discoverTournaments = async (season) => {
+            const ldPath = `${season}/LD`;
+            const ldContents = await fetchDirectory(ldPath);
+            
+            // Get all tournament directories
+            const tournamentDirs = ldContents.filter(item => item.type === 'dir');
+            
+            // Fetch all tournament contents in parallel
+            const tournamentPromises = tournamentDirs.map(async (item) => {
+                const tournamentName = item.name;
+                const tournamentPath = `${ldPath}/${tournamentName}`;
+                const tournamentContents = await fetchDirectory(tournamentPath);
+                
+                const tournament = {
+                    name: tournamentName,
+                    path: tournamentPath,
+                    entries: null,
+                    prelims: [],
+                    elims: []
+                };
+                
+                // Find entries file and subdirectories
+                const subDirPromises = [];
+                for (const subItem of tournamentContents) {
+                    if (subItem.type === 'file' && subItem.name.toLowerCase().includes('entries')) {
+                        tournament.entries = subItem.name;
+                    } else if (subItem.type === 'dir') {
+                        const folderName = subItem.name.toLowerCase();
+                        const folderPath = `${tournamentPath}/${subItem.name}`;
+                        
+                        // Fetch folder contents in parallel
+                        subDirPromises.push(
+                            fetchDirectory(folderPath).then(folderContents => {
+                                const csvFiles = folderContents
+                                    .filter(f => f.type === 'file' && f.name.endsWith('.csv'))
+                                    .map(f => f.name);
+                                
+                                if (folderName.includes('prelim')) {
+                                    tournament.prelims = csvFiles;
+                                } else if (folderName.includes('elim')) {
+                                    tournament.elims = csvFiles;
+                                }
+                            })
+                        );
                     }
                 }
-            });
-
-            // Populate Dropdown
-            el.seasonSelect.innerHTML = '';
-            const sortedSeasons = Array.from(seasons).sort().reverse();
-            
-            if (sortedSeasons.length === 0) {
-                const opt = document.createElement('option');
-                opt.textContent = "No Seasons Found";
-                el.seasonSelect.appendChild(opt);
-            } else {
-                sortedSeasons.forEach(season => {
-                    const opt = document.createElement('option');
-                    opt.value = season;
-                    opt.textContent = season;
-                    opt.className = 'bg-[#0a0a0f]';
-                    el.seasonSelect.appendChild(opt);
-                });
                 
-                // Load the first season automatically
-                loadSeasonData(sortedSeasons[0]);
-            }
+                await Promise.all(subDirPromises);
+                return tournament;
+            });
+            
+            return Promise.all(tournamentPromises);
         };
 
         const loadSeasonData = async (season) => {
-            if (state.processing) return;
             state.processing = true;
-            
-            // Reset State
             state.competitors = {};
             state.tournaments = [];
             state.codeToName = {};
@@ -939,108 +991,117 @@
             
             el.loadingIndicator.classList.remove('hidden');
             el.emptyState.classList.add('hidden');
-            el.rankingsContainer.classList.add('hidden');
+            el.exportBtn.disabled = true;
             el.h2hBtn.disabled = true;
             
-            log(`Loading ${season} data...`);
+            const loadingText = document.getElementById('loadingText');
+            const updateLoading = (text) => { if (loadingText) loadingText.textContent = text; };
+            
+            updateLoading('Discovering tournaments...');
+            log(`Loading ${season} data from GitHub...`);
 
             try {
-                // Filter tree for this season's files
-                const tree = await fetchRepoStructure();
-                const seasonFiles = tree.filter(item => 
-                    item.path.startsWith(season + '/') && 
-                    item.path.endsWith('.csv')
-                );
+                // Discover tournaments from GitHub
+                console.log(`Discovering tournaments for ${season}...`);
+                const tournaments = await discoverTournaments(season);
                 
-                if (seasonFiles.length === 0) {
-                    throw new Error(`No data files found for ${season}`);
+                if (tournaments.length === 0) {
+                    throw new Error(`No tournaments found for ${season}. Check that ${season}/LD/ exists.`);
                 }
+                
+                console.log(`Found ${tournaments.length} tournaments`);
+                updateLoading(`Loading entries...`);
 
-                // Organize files by tournament
-                const tournamentFiles = {}; // { tName: { entries: [], prelims: [], elims: [] } }
-
-                seasonFiles.forEach(file => {
-                    const parts = file.path.split('/');
-                    // Expected structure: Season/LD/TournamentName/...
-                    // or Season/TournamentName/...
-                    // Let's be flexible. Find the folder that contains "Prelims", "Elims", or is parent of "entries.csv"
-                    
-                    let tName = null;
-                    let type = null;
-                    
-                    // Simple heuristic: parts[parts.length - 2] is usually the category (Prelims/Elims)
-                    // and parts[parts.length - 3] is the Tournament Name
-                    
-                    // Case 1: .../Tournament/Prelims/file.csv
-                    // Case 2: .../Tournament/entries.csv
-                    
-                    const lowerPath = file.path.toLowerCase();
-                    
-                    if (lowerPath.includes('/prelims/') || lowerPath.includes('/prelim/')) {
-                        type = 'prelims';
-                        // Find the part before "Prelims"
-                        const pIndex = parts.findIndex(p => p.toLowerCase().startsWith('prelim'));
-                        if (pIndex > 0) tName = parts[pIndex - 1];
-                    } else if (lowerPath.includes('/elims/') || lowerPath.includes('/elim/')) {
-                        type = 'elims';
-                        const eIndex = parts.findIndex(p => p.toLowerCase().startsWith('elim'));
-                        if (eIndex > 0) tName = parts[eIndex - 1];
-                    } else if (lowerPath.endsWith('entries.csv') || lowerPath.includes('/entries/')) {
-                        type = 'entries';
-                        // Usually file is in Tournament folder
-                        if (parts[parts.length - 1].toLowerCase() === 'entries.csv') {
-                            tName = parts[parts.length - 2];
-                        } else {
-                            const eIndex = parts.findIndex(p => p.toLowerCase() === 'entries');
-                            if (eIndex > 0) tName = parts[eIndex - 1];
+                // Load ALL entries files in parallel (much faster)
+                const entriesPromises = tournaments
+                    .filter(t => t.entries)
+                    .map(async (tournament) => {
+                        const path = `${tournament.path}/${tournament.entries}`;
+                        const text = await fetchFile(path);
+                        if (text) {
+                            return { tName: tournament.name, text };
                         }
+                        return null;
+                    });
+                
+                const entriesResults = await Promise.all(entriesPromises);
+                let totalEntries = 0;
+                for (const result of entriesResults) {
+                    if (result) {
+                        const mappings = parseEntriesFile(result.text, result.tName);
+                        totalEntries += mappings.length;
                     }
-
-                    if (tName && tName !== 'LD' && tName !== season) {
-                        if (!tournamentFiles[tName]) tournamentFiles[tName] = { entries: [], prelims: [], elims: [] };
-                        tournamentFiles[tName][type].push(file);
-                    }
-                });
-
-                const tournaments = Object.keys(tournamentFiles).sort();
-                log(`Identified ${tournaments.length} tournaments.`);
-
-                // Step 1: Load Entries for all tournaments
-                const entriesPromises = tournaments.map(async tName => {
-                    const files = tournamentFiles[tName].entries;
-                    for (const file of files) {
-                        const url = getGitHubRawUrl(file.path);
-                        const text = await fetchCSV(url);
-                        if (text) parseEntriesFile(text, tName);
-                    }
-                });
-                await Promise.all(entriesPromises);
+                }
+                
+                console.log(`Total entries loaded: ${totalEntries}`);
                 
                 const mergeCount = buildMergeMappings();
-                if (mergeCount > 0) log(`Merged ${mergeCount} duplicate entries.`);
+                if (mergeCount > 0) console.log(`Merged ${mergeCount} duplicate entries.`);
+                
+                updateLoading(`Loading ${tournaments.length} tournaments...`);
 
-                // Step 2: Process Rounds (Sequential to maintain order if needed, or parallel per tournament)
-                // We'll do sequential tournaments for safety
-                for (const tName of tournaments) {
-                    const files = tournamentFiles[tName];
+                // Pre-fetch ALL round files for ALL tournaments in parallel
+                const allRoundFiles = [];
+                for (const tournament of tournaments) {
+                    const tName = tournament.name;
+                    for (const filename of (tournament.prelims || [])) {
+                        allRoundFiles.push({
+                            type: 'prelim',
+                            tournament: tName,
+                            tournamentData: tournament,
+                            filename,
+                            path: `${tournament.path}/Prelims/${filename}`
+                        });
+                    }
+                    for (const filename of (tournament.elims || [])) {
+                        allRoundFiles.push({
+                            type: 'elim',
+                            tournament: tName,
+                            tournamentData: tournament,
+                            filename,
+                            path: `${tournament.path}/Elims/${filename}`
+                        });
+                    }
+                }
+                
+                // Fetch all files in parallel
+                const fileContents = await Promise.all(
+                    allRoundFiles.map(async (file) => {
+                        const text = await fetchFile(file.path);
+                        return { ...file, text };
+                    })
+                );
+                
+                // Group by tournament
+                const tournamentFiles = {};
+                for (const file of fileContents) {
+                    if (!tournamentFiles[file.tournament]) {
+                        tournamentFiles[file.tournament] = { prelims: [], elims: [], data: file.tournamentData };
+                    }
+                    if (file.text) {
+                        if (file.type === 'prelim') {
+                            tournamentFiles[file.tournament].prelims.push({ filename: file.filename, text: file.text });
+                        } else {
+                            tournamentFiles[file.tournament].elims.push({ filename: file.filename, text: file.text });
+                        }
+                    }
+                }
+                
+                // Process tournaments
+                for (const [tName, tFiles] of Object.entries(tournamentFiles)) {
+                    const tournament = tFiles.data;
                     let bidLevel = determineBidLevel(tName) || 'quarters';
+                    
+                    const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
+                    const elims = (tFiles.elims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
+
                     const tournamentInfo = { name: tName, bidLevel };
                     const participants = new Set();
                     const elimPlacements = {};
-
-                    // Sort rounds
-                    const getFileRoundNum = (f) => getRoundNumber(f.path.split('/').pop());
-                    files.prelims.sort((a, b) => getFileRoundNum(a) - getFileRoundNum(b));
-                    files.elims.sort((a, b) => getFileRoundNum(a) - getFileRoundNum(b));
-
-                    // Prelims
-                    for (const file of files.prelims) {
-                        const url = getGitHubRawUrl(file.path);
-                        const text = await fetchCSV(url);
-                        if (!text) continue;
+                    
+                    for (const { filename, text } of prelims) {
                         const rows = parseCSV(text);
-                        const filename = file.path.split('/').pop();
-
+                        
                         for (const row of rows) {
                             const aff = row.aff || '';
                             const neg = row.neg || '';
@@ -1057,55 +1118,49 @@
                             
                             if (!affWon && !negWon) continue;
 
-                            // Lookup with tournament-specific resolution
+                            // Check for same-school matchup (walkover) in prelims too
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
+                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
-                            
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
+
                             const roundName = filename.replace('.csv', '').replace(/tabroom-?\d*/i, '').trim() || `Prelim ${getRoundNumber(filename)}`;
-                            
                             processRound(aff, neg, affWon, affSpeaks, tournamentInfo, 'aff', roundName, isWalkover);
                             processRound(neg, aff, negWon, negSpeaks, tournamentInfo, 'neg', roundName, isWalkover);
 
-                            // Update stats (only if not walkover)
-                            if (!isWalkover) {
-                                if (!affComp.tournamentStats[tName]) affComp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
-                                if (affWon) affComp.tournamentStats[tName].pWins++; else affComp.tournamentStats[tName].pLosses++;
-                                
-                                if (!negComp.tournamentStats[tName]) negComp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
-                                if (negWon) negComp.tournamentStats[tName].pWins++; else negComp.tournamentStats[tName].pLosses++;
-                            }
+                            const updatePrelimStats = (id, won, isWO) => {
+                                const comp = getCompetitor(id, tName);
+                                if (!comp.tournamentStats[tName]) comp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
+                                // Only count non-walkover rounds in stats display
+                                if (!isWO) {
+                                    if (won) comp.tournamentStats[tName].pWins++;
+                                    else comp.tournamentStats[tName].pLosses++;
+                                }
+                            };
+                            updatePrelimStats(aff, affWon, isWalkover);
+                            updatePrelimStats(neg, negWon, isWalkover);
                         }
                     }
 
-                    // Elims
-                    for (const file of files.elims) {
-                        const url = getGitHubRawUrl(file.path);
-                        const text = await fetchCSV(url);
-                        if (!text) continue;
+                    for (const { filename, text } of elims) {
                         const rows = parseCSV(text);
-                        const filename = file.path.split('/').pop();
 
-                        // Determine Elim Level
                         let elimLevel = 'quarters';
                         const lower = filename.toLowerCase();
                         if (lower.includes('oct')) elimLevel = 'octas';
                         else if (lower.includes('semi')) elimLevel = 'semis';
                         else if (lower.includes('final')) elimLevel = 'finals';
-                        else if (lower.includes('triples') || lower.includes('double')) elimLevel = 'octas'; // Fallback for earlier rounds
                         else {
-                            // Heuristic based on row count if filename is ambiguous
                             if (rows.length === 1) elimLevel = 'finals';
                             else if (rows.length <= 2) elimLevel = 'semis';
                             else if (rows.length <= 4) elimLevel = 'quarters';
                             else elimLevel = 'octas';
                         }
-
+                        
                         for (const row of rows) {
-                            // Row override
                             if (row.round) {
                                 const r = row.round.toLowerCase();
                                 if (r.includes('oct')) elimLevel = 'octas';
@@ -1128,9 +1183,11 @@
 
                             if (!affWon && !negWon) continue;
 
+                            // Use tournament-specific lookup for proper competitor resolution
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
+                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
@@ -1139,8 +1196,8 @@
                             processRound(aff, neg, affWon, affSpeaks, tournamentInfo, 'aff', elimRoundName, isWalkover);
                             processRound(neg, aff, negWon, negSpeaks, tournamentInfo, 'neg', elimRoundName, isWalkover);
 
-                            // Helper for recording elim result
-                            const updateElimStats = (comp, level, isWinner) => {
+                            const updateElimStats = (id, level, isWinner) => {
+                                const comp = getCompetitor(id, tName);
                                 if (!comp.tournamentStats[tName]) comp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
                                 
                                 const val = { 'octas': 1, 'quarters': 2, 'semis': 3, 'finals': 4, 'winner': 5 };
@@ -1152,7 +1209,6 @@
                                 let reachedLevel = level;
                                 if (isWinner && level === 'finals') reachedLevel = 'winner';
                                 else if (isWinner) {
-                                    // If you WIN octas, you reached Quarters
                                     if (level === 'octas') reachedLevel = 'quarters';
                                     else if (level === 'quarters') reachedLevel = 'semis';
                                     else if (level === 'semis') reachedLevel = 'finals';
@@ -1162,37 +1218,40 @@
                                     comp.tournamentStats[tName].maxElim = displayMap[reachedLevel];
                                 }
                             };
-                            updateElimStats(affComp, elimLevel, affWon);
-                            updateElimStats(negComp, elimLevel, negWon);
+                            updateElimStats(aff, elimLevel, affWon);
+                            updateElimStats(neg, elimLevel, negWon);
                             
-                            // For Elo Bonuses
-                            const recordBonus = (id, level) => {
+                            const recordPlacement = (id, level) => {
+                                // Get the actual competitor to use their canonical ID
+                                const comp = getCompetitor(id, tName);
+                                const canonId = comp.id;
                                 const levels = { 'octas': 1, 'quarters': 2, 'semis': 3, 'finals': 4, 'winner': 5 };
-                                if (!elimPlacements[id] || levels[level] > levels[elimPlacements[id]]) {
-                                    elimPlacements[id] = level;
+                                if (!elimPlacements[canonId] || levels[level] > levels[elimPlacements[canonId]]) {
+                                    elimPlacements[canonId] = level;
                                 }
                             };
-                            recordBonus(affComp.id, elimLevel);
-                            recordBonus(negComp.id, elimLevel);
+
+                            recordPlacement(aff, elimLevel);
+                            recordPlacement(neg, elimLevel);
+                            
                             if (elimLevel === 'finals') {
-                                recordBonus(affWon ? affComp.id : negComp.id, 'winner');
+                                recordPlacement(affWon ? aff : neg, 'winner');
                             }
                         }
                     }
 
-                    // Apply Bonuses
                     for (const [id, level] of Object.entries(elimPlacements)) {
                         const bonus = ELIM_BONUSES[level] || 0;
                         if (bonus > 0 && state.competitors[id]) {
                             state.competitors[id].rating += bonus;
                         }
                     }
-                    
-                    // Mark Participation / Top 50
+
                     participants.forEach(id => {
                         const comp = state.competitors[id];
                         if (comp) {
                             comp.tournaments++;
+                            comp.tournamentHistory.push({ name: tName, rating: Math.round(comp.rating) });
                             if (comp.rating > 1800) comp.isTop50 = true;
                         }
                     });
@@ -1200,28 +1259,22 @@
                     state.tournaments.push({ ...tournamentInfo, participants: participants.size });
                 }
 
-                log(`Success! Loaded ${state.tournaments.length} tournaments.`);
+                log(`\n✓ Processed ${state.tournaments.length} tournaments successfully.`);
                 renderStats();
                 renderRankings();
                 el.exportBtn.disabled = false;
                 el.h2hBtn.disabled = false;
 
             } catch (err) {
+                log(`Error: ${err.message}`);
                 console.error(err);
                 el.emptyState.classList.remove('hidden');
-                el.emptyState.querySelector('p').textContent = `Error: ${err.message}`;
+                el.emptyState.querySelector('p').textContent = `Failed to load data: ${err.message}`;
             } finally {
                 state.processing = false;
                 el.loadingIndicator.classList.add('hidden');
             }
         };
-
-        el.seasonSelect.addEventListener('change', (e) => {
-            loadSeasonData(e.target.value);
-        });
-
-        // Start App
-        initApp();
 
         const renderStats = () => {
             el.competitorsStat.textContent = Object.keys(state.competitors).length;
@@ -1409,20 +1462,29 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `ld_rankings_${el.season.value}.csv`;
+            a.download = `ld_rankings_${el.seasonSelect.value}.csv`;
             a.click();
         };
 
         // Event Listeners
-        el.folderInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files).filter(f => f.name.endsWith('.csv'));
-            if (files.length === 0) { alert('No CSV files found.'); return; }
-            processFiles(files);
-        });
-
         el.exportBtn.addEventListener('click', exportRankings);
-        el.diversityPenalty.addEventListener('change', (e) => { state.settings.regionalDiversityPenalty = e.target.checked; });
-        el.walkoversEnabled.addEventListener('change', (e) => { state.settings.walkoversEnabled = e.target.checked; });
+        
+        // Season select change handler
+        el.seasonSelect.addEventListener('change', (e) => {
+            if (!state.processing) {
+                loadSeasonData(e.target.value);
+            }
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSeasonDropdown();
+        });
+        
+        // Also try to load immediately if DOM is already ready
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            populateSeasonDropdown();
+        }
         
         // Search functionality
         let searchTimeout;
@@ -1453,11 +1515,7 @@
             }
         });
         
-        // Clear search when new data is imported
-        el.folderInput.addEventListener('change', () => {
-            el.searchInput.value = '';
-            el.clearSearch.classList.add('hidden');
-        });
+
         
         // Head to Head functionality
         const openH2HModal = () => {
