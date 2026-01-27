@@ -1,13 +1,4 @@
 #!/usr/bin/env node
-/**
- * Generate manifest.json for LD Debate Rankings
- * 
- * Run this script from the root of your repository:
- *   node generate-manifest.js
- * 
- * It will scan the folder structure and create manifest.json
- * with all tournaments, entries files, and round files.
- */
 
 const fs = require('fs');
 const path = require('path');
@@ -17,7 +8,7 @@ const manifest = {
     data: {}
 };
 
-// Find all season folders (format: YYYY-YYYY)
+
 const rootDir = '.';
 const seasonPattern = /^\d{4}-\d{4}$/;
 
@@ -62,7 +53,7 @@ for (const season of seasons) {
             }
         }
         
-        // Check for Prelims folder
+        // Check for Prelims 
         const prelimsPath = path.join(tournamentPath, 'Prelims');
         if (fs.existsSync(prelimsPath)) {
             tournament.prelims = fs.readdirSync(prelimsPath)
@@ -70,7 +61,7 @@ for (const season of seasons) {
                 .sort();
         }
         
-        // Check for Elims folder
+        // Check for Elims 
         const elimsPath = path.join(tournamentPath, 'Elims');
         if (fs.existsSync(elimsPath)) {
             tournament.elims = fs.readdirSync(elimsPath)
@@ -83,7 +74,7 @@ for (const season of seasons) {
     }
 }
 
-// Write manifest
+// manifest
 fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
 console.log(`\nManifest written to manifest.json`);
 console.log(`Seasons: ${seasons.join(', ')}`);
