@@ -92,15 +92,14 @@
                     <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings</h1>
                     <p class="text-sm text-white/40 mt-1">TOC Circuit • 
                         <select id="seasonSelect" class="bg-transparent text-white/60 outline-none border-b border-white/20 hover:border-white/40 focus:border-white/60 transition-colors cursor-pointer">
-                            <option value="2025-2026" class="bg-[#0a0a0f]">2025-2026</option>
-                            <option value="2024-2025" class="bg-[#0a0a0f]">2024-2025</option>
+                            <option value="" class="bg-[#0a0a0f]">Loading...</option>
                         </select>
                     </p>
                 </div>
                 <div class="flex items-center gap-3">
                     <div id="loadingIndicator" class="hidden flex items-center gap-2 text-white/60 text-sm">
                         <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
-                        <span id="loadingText">Loading...</span>
+                        <span>Loading...</span>
                     </div>
                     <button id="exportBtn" disabled class="btn flex items-center gap-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white/60 px-4 py-2 rounded-lg text-sm font-medium">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -292,7 +291,7 @@
             abbrevToFullCode: {},
             tournamentEntriesMap: {},
             tournamentSchoolMap: {},
-            matchupHistory: {}, // Stores all head-to-head matchups
+            matchupHistory: {},
             h2hSelection: { aff: null, neg: null }
         };
 
@@ -303,31 +302,49 @@
         const BID_MULTIPLIERS = { 'octas': 1.3, 'quarters': 1.2, 'semis': 1.1, 'finals': 1.0 };
         const ELIM_BONUSES = { 'quarters': 10, 'semis': 20, 'finals': 30, 'winner': 40 };
 
-        // GitHub Configuration - Since we're on GitHub Pages, we can fetch directly from the same origin
+        // GitHub Configuration
         const GITHUB_CONFIG = {
             owner: 'masonoakhill',
             repo: 'masonoakhill.github.io',
             branch: 'main'
         };
 
-        // For GitHub Pages, we can fetch directly from the same origin (much faster than API)
-        const getDirectUrl = (path) => {
-            // When hosted on GitHub Pages, files are served from the root
-            return `/${path}`;
+        // Cache for the repository tree to avoid re-fetching
+        let repoTreeCache = null;
+
+        // Fetch the full repository tree recursively (optimization)
+        const fetchRepoTree = async () => {
+            if (repoTreeCache) return repoTreeCache;
+            
+            try {
+                // 1. Get branch SHA
+                const branchUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/branches/${GITHUB_CONFIG.branch}`;
+                const branchResp = await fetch(branchUrl);
+                if (!branchResp.ok) throw new Error('Failed to fetch branch info');
+                const branchData = await branchResp.json();
+                const treeSha = branchData.commit.commit.tree.sha;
+
+                // 2. Get Tree (Recursive)
+                const treeUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/git/trees/${treeSha}?recursive=1`;
+                const treeResp = await fetch(treeUrl);
+                if (!treeResp.ok) throw new Error('Failed to fetch repo tree');
+                const treeData = await treeResp.json();
+                
+                repoTreeCache = treeData.tree;
+                return repoTreeCache;
+            } catch (e) {
+                console.error("Tree fetch failed", e);
+                return [];
+            }
         };
-        
-        // Fallback to raw GitHub URL if direct doesn't work
+
         const getGitHubRawUrl = (path) => {
             return `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${path}`;
         };
 
-        // GitHub API URL (only used for directory listing, cached aggressively)
         const getGitHubApiUrl = (path = '') => {
             return `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${path}?ref=${GITHUB_CONFIG.branch}`;
         };
-        
-        // Cache for directory listings to avoid repeated API calls
-        const dirCache = new Map();
 
         // DOM Elements
         const el = {
@@ -370,12 +387,6 @@
             h2hNoHistory: document.getElementById('h2hNoHistory')
         };
         
-        // Settings (hardcoded since we removed the UI)
-        state.settings = {
-            regionalDiversityPenalty: true,
-            walkoversEnabled: true
-        };
-
         // Helpers
         const expectedScore = (ratingA, ratingB) => 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
 
@@ -472,7 +483,6 @@
             return lookupFullName(code);
         };
         
-        // Get the full code (e.g., "School John Doe") for an abbreviated code at a specific tournament
         const getFullCodeForTournament = (abbrevCode, tournamentName) => {
             if (!abbrevCode) return null;
             
@@ -511,53 +521,19 @@
                 if (key.toLowerCase() === codeLower) return value;
             }
             
-            const school = extractSchoolFromCode(code);
-            const abbrev = extractAbbrevFromCode(code);
-            if (!school || !abbrev) return null;
-            
-            const schoolKey = school.toLowerCase();
-            let entries = state.schoolEntriesMap[schoolKey];
-            
-            if (!entries || entries.length === 0) {
-                for (const [key, value] of Object.entries(state.schoolEntriesMap)) {
-                    if (key.startsWith(schoolKey) || schoolKey.startsWith(key)) {
-                        entries = value;
-                        break;
-                    }
-                }
-            }
-            
-            if (!entries || entries.length === 0) return null;
-            
-            for (const entry of entries) {
-                if (abbreviationMatchesName(abbrev, entry.name)) {
-                    state.codeToName[code] = entry.name;
-                    if (!state.abbrevToFullCode[code]) {
-                        state.abbrevToFullCode[code] = entry.fullCode;
-                    }
-                    return entry.name;
-                }
-            }
             return null;
         };
 
         const getCompetitor = (id, tournamentName = null) => {
-            // CRITICAL FIX: Use the FULL NAME as the primary identifier when available.
-            // This ensures that:
-            // 1. "Harker AS" (Ansh Sheth) at Tournament A is DIFFERENT from "Harker AS" (Anirudh Subramanian) at Tournament B
-            // 2. "Harker ASh" (Ansh Sheth) merges with "Peninsula AS" (Ansh Sheth) if they're the same person
-            
             let resolvedFullName = null;
             let resolvedFullCode = null;
             let school = '';
             
-            // Step 1: Try to resolve to a full name using tournament-specific lookup FIRST
             if (tournamentName) {
                 resolvedFullName = lookupFullNameForTournament(id, tournamentName);
                 resolvedFullCode = getFullCodeForTournament(id, tournamentName);
             }
             
-            // Step 2: If no tournament-specific match, try global lookup
             if (!resolvedFullName) {
                 resolvedFullName = lookupFullName(id);
             }
@@ -565,35 +541,26 @@
                 resolvedFullCode = state.abbrevToFullCode[id] || id;
             }
             
-            // Step 3: Determine the canonical ID
-            // Priority: normalized full name (if available) > full code > original id
             let canonicalId;
             if (resolvedFullName) {
-                // Use normalized name as a key to find/create the canonical competitor
                 const normalizedName = normalizeName(resolvedFullName);
-                
-                // Check if we already have a competitor with this name
                 if (state.nameToCanonicalCode[normalizedName]) {
                     canonicalId = state.nameToCanonicalCode[normalizedName];
                 } else {
-                    // Create a new canonical ID using the full code
                     canonicalId = resolvedFullCode || id;
                     state.nameToCanonicalCode[normalizedName] = canonicalId;
                 }
                 
-                // Extract school from the full code
                 if (resolvedFullCode && resolvedFullCode.toLowerCase().endsWith(resolvedFullName.toLowerCase())) {
                     school = resolvedFullCode.slice(0, resolvedFullCode.length - resolvedFullName.length).trim();
                 } else {
                     school = extractSchoolFromCode(resolvedFullCode || id);
                 }
             } else {
-                // No name found - use code-based resolution
                 canonicalId = getCanonicalCode(resolvedFullCode || id);
                 school = extractSchoolFromCode(canonicalId);
             }
             
-            // Step 4: Create or retrieve competitor
             if (!state.competitors[canonicalId]) {
                 state.competitors[canonicalId] = {
                     id: canonicalId,
@@ -619,13 +586,10 @@
                 };
             }
             
-            // Track all codes used
             state.competitors[canonicalId].allCodes.add(id);
             if (resolvedFullCode && resolvedFullCode !== id) {
                 state.competitors[canonicalId].allCodes.add(resolvedFullCode);
             }
-            
-            // Update fullName if we found one and don't have it yet
             if (resolvedFullName && !state.competitors[canonicalId].fullName) {
                 state.competitors[canonicalId].fullName = resolvedFullName;
             }
@@ -643,11 +607,9 @@
             const comp = getCompetitor(competitorId, tournamentName);
             const opp = getCompetitor(opponentId, tournamentName);
             
-            // Use the opponent's canonical ID (their actual ID in state.competitors)
             comp.opponents.add(opp.id);
             comp.opponentSchools.add(opp.school);
             
-            // Record matchup history (only once per round, from the perspective of the first caller)
             if (side === 'aff' && !isWalkover) {
                 const matchupKey = [comp.id, opp.id].sort().join('::');
                 if (!state.matchupHistory[matchupKey]) {
@@ -766,23 +728,24 @@
             const rows = parseCSV(text);
             const mappings = [];
             
-            // Initialize tournament-specific entries map
             if (!state.tournamentEntriesMap[tournamentName]) {
                 state.tournamentEntriesMap[tournamentName] = {};
             }
             
             for (const row of rows) {
-                let fullCode = (row.code || '').toString().trim();
-                let name = (row.entry || row.name || '').toString().trim();
-                let school = (row.institution || row.school || '').toString().trim();
+                // Try different column names
+                let fullCode = (row.code || row['competitor code'] || '').toString().trim();
+                let name = (row.entry || row.name || row['full name'] || row.student || row.competitor || '').toString().trim();
+                let school = (row.institution || row.school || row.team || row.organization || '').toString().trim();
                 
+                // If we have first/last name columns
+                if (!name && (row.first || row['first name']) && (row.last || row['last name'])) {
+                    name = `${row.first || row['first name']} ${row.last || row['last name']}`.trim();
+                }
+
                 if (name && fullCode) {
-                    // Store global code-to-name mapping
                     state.codeToName[fullCode] = name;
                     
-                    // Store tournament-specific mapping: abbreviated code -> full name
-                    // This prevents "School JD" from matching wrong person at different tournaments
-                    const abbrevCode = extractSchoolFromCode(fullCode) + ' ' + extractAbbrevFromCode(fullCode);
                     state.tournamentEntriesMap[tournamentName][fullCode.toLowerCase()] = { name, fullCode, school };
                     
                     if (school) {
@@ -790,7 +753,6 @@
                         if (!state.schoolEntriesMap[schoolKey]) state.schoolEntriesMap[schoolKey] = [];
                         state.schoolEntriesMap[schoolKey].push({ name, fullCode, tournament: tournamentName });
                         
-                        // Also store by tournament + school for precise lookups
                         const tournamentSchoolKey = `${tournamentName}::${schoolKey}`;
                         if (!state.tournamentSchoolMap[tournamentSchoolKey]) state.tournamentSchoolMap[tournamentSchoolKey] = [];
                         state.tournamentSchoolMap[tournamentSchoolKey].push({ name, fullCode });
@@ -799,29 +761,20 @@
                 }
             }
             
-            log(`  Loaded ${mappings.length} entries for ${tournamentName}`);
             return mappings;
         };
 
         const buildMergeMappings = () => {
-            // Build a map of full codes to their resolved names
-            // Only merge FULL codes (like "Harker Ansh Sheth") that have the same name
-            // Do NOT merge abbreviated codes directly - those are resolved per-tournament
-            
             const nameToFullCodesList = {};
             
-            // Only use codeToName which maps FULL codes to names
             for (const [fullCode, name] of Object.entries(state.codeToName)) {
                 const normalizedName = normalizeName(name);
                 if (!normalizedName) continue;
                 
-                // Only include full codes (codes that contain a full name, not abbreviations)
-                // Full codes typically have more than 2 parts and the last part isn't all caps
                 const parts = fullCode.trim().split(/\s+/);
                 const lastPart = parts[parts.length - 1];
                 const isAbbreviation = lastPart.length <= 4 && lastPart === lastPart.toUpperCase();
                 
-                // Skip abbreviated codes - they should be resolved per-tournament
                 if (isAbbreviation) continue;
                 
                 if (!nameToFullCodesList[normalizedName]) nameToFullCodesList[normalizedName] = [];
@@ -834,7 +787,6 @@
             for (const [normalizedName, codes] of Object.entries(nameToFullCodesList)) {
                 if (codes.length <= 1) continue;
                 
-                // Sort by length (shorter first) then alphabetically
                 codes.sort((a, b) => a.length - b.length || a.localeCompare(b));
                 const canonicalCode = codes[0];
                 state.nameToCanonicalCode[normalizedName] = canonicalCode;
@@ -845,49 +797,31 @@
                         mergeCount++;
                     }
                 }
-                log(`  Merging: ${codes.join(' + ')} → "${state.codeToName[canonicalCode]}"`);
             }
             return mergeCount;
         };
 
-        // Fetch a file - try direct first (fast), fallback to raw GitHub
+        // Fetch a file from GitHub (raw content)
         const fetchFile = async (path) => {
             try {
-                // Try direct fetch first (same origin, very fast)
-                let response = await fetch(getDirectUrl(path));
-                if (response.ok) {
-                    return await response.text();
-                }
-                
-                // Fallback to raw GitHub URL
-                response = await fetch(getGitHubRawUrl(path));
-                if (response.ok) {
-                    return await response.text();
-                }
-                return null;
+                const url = getGitHubRawUrl(path);
+                const response = await fetch(url);
+                if (!response.ok) return null;
+                return await response.text();
             } catch (e) {
                 console.error(`Failed to fetch ${path}:`, e);
                 return null;
             }
         };
 
-        // Fetch directory listing from GitHub API with caching
+        // Fetch directory listing from GitHub API
         const fetchDirectory = async (path) => {
-            // Check cache first
-            if (dirCache.has(path)) {
-                return dirCache.get(path);
-            }
-            
             try {
                 const url = getGitHubApiUrl(path);
                 const response = await fetch(url);
                 if (!response.ok) return [];
                 const data = await response.json();
-                const result = Array.isArray(data) ? data : [];
-                
-                // Cache the result
-                dirCache.set(path, result);
-                return result;
+                return Array.isArray(data) ? data : [];
             } catch (e) {
                 console.error(`Failed to fetch directory ${path}:`, e);
                 return [];
@@ -896,13 +830,15 @@
 
         // Discover available seasons from the repo
         const discoverSeasons = async () => {
-            const rootContents = await fetchDirectory('');
-            const seasons = rootContents
-                .filter(item => item.type === 'dir' && /^\d{4}-\d{4}$/.test(item.name))
-                .map(item => item.name)
-                .sort()
-                .reverse(); // Most recent first
-            return seasons;
+            const tree = await fetchRepoTree();
+            const seasonSet = new Set();
+            tree.forEach(item => {
+                const parts = item.path.split('/');
+                if (parts.length > 0 && /^\d{4}-\d{4}$/.test(parts[0])) {
+                    seasonSet.add(parts[0]);
+                }
+            });
+            return Array.from(seasonSet).sort().reverse();
         };
 
         // Populate season dropdown
@@ -910,6 +846,7 @@
             const seasons = await discoverSeasons();
             if (seasons.length === 0) {
                 console.error('No seasons found in repository');
+                el.emptyState.querySelector('p').textContent = 'No seasons found in repository.';
                 return;
             }
             
@@ -921,59 +858,51 @@
             loadSeasonData(seasons[0]);
         };
 
-        // Discover tournament structure for a season - PARALLEL loading for speed
+        // Discover tournament structure for a season
         const discoverTournaments = async (season) => {
-            const ldPath = `${season}/LD`;
-            const ldContents = await fetchDirectory(ldPath);
-            
-            // Get all tournament directories
-            const tournamentDirs = ldContents.filter(item => item.type === 'dir');
-            
-            // Fetch all tournament contents in parallel
-            const tournamentPromises = tournamentDirs.map(async (item) => {
-                const tournamentName = item.name;
-                const tournamentPath = `${ldPath}/${tournamentName}`;
-                const tournamentContents = await fetchDirectory(tournamentPath);
+            const tree = await fetchRepoTree();
+            const tournamentsMap = {};
+            const prefix = `${season}/LD/`;
+
+            for (const item of tree) {
+                if (!item.path.startsWith(prefix)) continue;
                 
-                const tournament = {
-                    name: tournamentName,
-                    path: tournamentPath,
-                    entries: null,
-                    prelims: [],
-                    elims: []
-                };
+                const relPath = item.path.substring(prefix.length);
+                const parts = relPath.split('/');
                 
-                // Find entries file and subdirectories
-                const subDirPromises = [];
-                for (const subItem of tournamentContents) {
-                    if (subItem.type === 'file' && subItem.name.toLowerCase().includes('entries')) {
-                        tournament.entries = subItem.name;
-                    } else if (subItem.type === 'dir') {
-                        const folderName = subItem.name.toLowerCase();
-                        const folderPath = `${tournamentPath}/${subItem.name}`;
-                        
-                        // Fetch folder contents in parallel
-                        subDirPromises.push(
-                            fetchDirectory(folderPath).then(folderContents => {
-                                const csvFiles = folderContents
-                                    .filter(f => f.type === 'file' && f.name.endsWith('.csv'))
-                                    .map(f => f.name);
-                                
-                                if (folderName.includes('prelim')) {
-                                    tournament.prelims = csvFiles;
-                                } else if (folderName.includes('elim')) {
-                                    tournament.elims = csvFiles;
-                                }
-                            })
-                        );
-                    }
+                if (parts.length < 1) continue;
+                
+                const tournamentName = parts[0];
+                if (!tournamentsMap[tournamentName]) {
+                    tournamentsMap[tournamentName] = {
+                        name: tournamentName,
+                        entries: null,
+                        prelims: [],
+                        elims: []
+                    };
                 }
                 
-                await Promise.all(subDirPromises);
-                return tournament;
-            });
-            
-            return Promise.all(tournamentPromises);
+                const fileName = parts[parts.length - 1];
+                const lowerName = fileName.toLowerCase();
+                
+                if (lowerName.includes('entries') && lowerName.endsWith('.csv')) {
+                    tournamentsMap[tournamentName].entries = item.path;
+                }
+                else if (item.path.toLowerCase().includes('/prelims/') && fileName.endsWith('.csv')) {
+                    tournamentsMap[tournamentName].prelims.push({
+                        path: item.path,
+                        name: fileName
+                    });
+                }
+                else if (item.path.toLowerCase().includes('/elims/') && fileName.endsWith('.csv')) {
+                    tournamentsMap[tournamentName].elims.push({
+                        path: item.path,
+                        name: fileName
+                    });
+                }
+            }
+
+            return Object.values(tournamentsMap);
         };
 
         const loadSeasonData = async (season) => {
@@ -994,119 +923,64 @@
             el.exportBtn.disabled = true;
             el.h2hBtn.disabled = true;
             
-            const loadingText = document.getElementById('loadingText');
-            const updateLoading = (text) => { if (loadingText) loadingText.textContent = text; };
-            
-            updateLoading('Discovering tournaments...');
             log(`Loading ${season} data from GitHub...`);
 
             try {
-                // Discover tournaments from GitHub
-                console.log(`Discovering tournaments for ${season}...`);
                 const tournaments = await discoverTournaments(season);
                 
                 if (tournaments.length === 0) {
                     throw new Error(`No tournaments found for ${season}. Check that ${season}/LD/ exists.`);
                 }
-                
-                console.log(`Found ${tournaments.length} tournaments`);
-                updateLoading(`Loading entries...`);
 
-                // Load ALL entries files in parallel (much faster)
-                const entriesPromises = tournaments
-                    .filter(t => t.entries)
-                    .map(async (tournament) => {
-                        const path = `${tournament.path}/${tournament.entries}`;
-                        const text = await fetchFile(path);
-                        if (text) {
-                            return { tName: tournament.name, text };
-                        }
-                        return null;
-                    });
+                // Parallel fetch entries
+                const entriesPromises = tournaments.map(async t => {
+                    if (t.entries) {
+                        const text = await fetchFile(t.entries);
+                        if (text) return { tName: t.name, text };
+                    }
+                    return null;
+                });
                 
                 const entriesResults = await Promise.all(entriesPromises);
+                
                 let totalEntries = 0;
-                for (const result of entriesResults) {
+                entriesResults.forEach(result => {
                     if (result) {
                         const mappings = parseEntriesFile(result.text, result.tName);
                         totalEntries += mappings.length;
                     }
-                }
-                
-                console.log(`Total entries loaded: ${totalEntries}`);
+                });
                 
                 const mergeCount = buildMergeMappings();
-                if (mergeCount > 0) console.log(`Merged ${mergeCount} duplicate entries.`);
                 
-                updateLoading(`Loading ${tournaments.length} tournaments...`);
-
-                // Pre-fetch ALL round files for ALL tournaments in parallel
-                const allRoundFiles = [];
+                // Parallel fetch rounds per tournament
                 for (const tournament of tournaments) {
                     const tName = tournament.name;
-                    for (const filename of (tournament.prelims || [])) {
-                        allRoundFiles.push({
-                            type: 'prelim',
-                            tournament: tName,
-                            tournamentData: tournament,
-                            filename,
-                            path: `${tournament.path}/Prelims/${filename}`
-                        });
-                    }
-                    for (const filename of (tournament.elims || [])) {
-                        allRoundFiles.push({
-                            type: 'elim',
-                            tournament: tName,
-                            tournamentData: tournament,
-                            filename,
-                            path: `${tournament.path}/Elims/${filename}`
-                        });
-                    }
-                }
-                
-                // Fetch all files in parallel
-                const fileContents = await Promise.all(
-                    allRoundFiles.map(async (file) => {
-                        const text = await fetchFile(file.path);
-                        return { ...file, text };
-                    })
-                );
-                
-                // Group by tournament
-                const tournamentFiles = {};
-                for (const file of fileContents) {
-                    if (!tournamentFiles[file.tournament]) {
-                        tournamentFiles[file.tournament] = { prelims: [], elims: [], data: file.tournamentData };
-                    }
-                    if (file.text) {
-                        if (file.type === 'prelim') {
-                            tournamentFiles[file.tournament].prelims.push({ filename: file.filename, text: file.text });
-                        } else {
-                            tournamentFiles[file.tournament].elims.push({ filename: file.filename, text: file.text });
-                        }
-                    }
-                }
-                
-                // Process tournaments
-                for (const [tName, tFiles] of Object.entries(tournamentFiles)) {
-                    const tournament = tFiles.data;
                     let bidLevel = determineBidLevel(tName) || 'quarters';
                     
-                    const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
-                    const elims = (tFiles.elims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
-
                     const tournamentInfo = { name: tName, bidLevel };
                     const participants = new Set();
                     const elimPlacements = {};
                     
-                    for (const { filename, text } of prelims) {
-                        const rows = parseCSV(text);
+                    const prelims = (tournament.prelims || []).sort((a, b) => getRoundNumber(a.name) - getRoundNumber(b.name));
+                    const elims = (tournament.elims || []).sort((a, b) => getRoundNumber(a.name) - getRoundNumber(b.name));
+
+                    const prelimPromises = prelims.map(f => fetchFile(f.path).then(text => ({ ...f, text })));
+                    const elimPromises = elims.map(f => fetchFile(f.path).then(text => ({ ...f, text })));
+                    
+                    const [prelimFiles, elimFiles] = await Promise.all([
+                        Promise.all(prelimPromises),
+                        Promise.all(elimPromises)
+                    ]);
+
+                    for (const file of prelimFiles) {
+                        if (!file.text) continue;
+                        const rows = parseCSV(file.text);
                         
                         for (const row of rows) {
                             const aff = row.aff || '';
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
-                            
                             const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
                             const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
 
@@ -1115,26 +989,22 @@
 
                             let affWon = winner === 'aff' || winner === 'a' || winner.includes(aff.toLowerCase());
                             let negWon = winner === 'neg' || winner === 'n' || winner.includes(neg.toLowerCase());
-                            
                             if (!affWon && !negWon) continue;
 
-                            // Check for same-school matchup (walkover) in prelims too
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
-                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
 
-                            const roundName = filename.replace('.csv', '').replace(/tabroom-?\d*/i, '').trim() || `Prelim ${getRoundNumber(filename)}`;
+                            const roundName = file.name.replace('.csv', '').replace(/tabroom-?\d*/i, '').trim() || `Prelim ${getRoundNumber(file.name)}`;
                             processRound(aff, neg, affWon, affSpeaks, tournamentInfo, 'aff', roundName, isWalkover);
                             processRound(neg, aff, negWon, negSpeaks, tournamentInfo, 'neg', roundName, isWalkover);
 
                             const updatePrelimStats = (id, won, isWO) => {
                                 const comp = getCompetitor(id, tName);
                                 if (!comp.tournamentStats[tName]) comp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
-                                // Only count non-walkover rounds in stats display
                                 if (!isWO) {
                                     if (won) comp.tournamentStats[tName].pWins++;
                                     else comp.tournamentStats[tName].pLosses++;
@@ -1145,8 +1015,10 @@
                         }
                     }
 
-                    for (const { filename, text } of elims) {
-                        const rows = parseCSV(text);
+                    for (const file of elimFiles) {
+                        if (!file.text) continue;
+                        const rows = parseCSV(file.text);
+                        const filename = file.name;
 
                         let elimLevel = 'quarters';
                         const lower = filename.toLowerCase();
@@ -1172,22 +1044,17 @@
                             const aff = row.aff || '';
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
-                            
                             const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
                             const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
 
                             if (!aff || !neg) continue;
-
                             let affWon = winner === 'aff' || winner.includes('aff');
                             let negWon = winner === 'neg' || winner.includes('neg');
-
                             if (!affWon && !negWon) continue;
 
-                            // Use tournament-specific lookup for proper competitor resolution
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
-                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
@@ -1222,7 +1089,6 @@
                             updateElimStats(neg, elimLevel, negWon);
                             
                             const recordPlacement = (id, level) => {
-                                // Get the actual competitor to use their canonical ID
                                 const comp = getCompetitor(id, tName);
                                 const canonId = comp.id;
                                 const levels = { 'octas': 1, 'quarters': 2, 'semis': 3, 'finals': 4, 'winner': 5 };
@@ -1242,7 +1108,7 @@
 
                     for (const [id, level] of Object.entries(elimPlacements)) {
                         const bonus = ELIM_BONUSES[level] || 0;
-                        if (bonus > 0 && state.competitors[id]) {
+                        if (state.competitors[id]) {
                             state.competitors[id].rating += bonus;
                         }
                     }
@@ -1266,7 +1132,6 @@
                 el.h2hBtn.disabled = false;
 
             } catch (err) {
-                log(`Error: ${err.message}`);
                 console.error(err);
                 el.emptyState.classList.remove('hidden');
                 el.emptyState.querySelector('p').textContent = `Failed to load data: ${err.message}`;
@@ -1291,27 +1156,18 @@
             if (isSearching) {
                 const query = searchQuery.toLowerCase().trim();
                 comps = allComps.filter(comp => {
-                    // Search by full name
                     const fullName = comp.fullName || lookupFullName(comp.id) || '';
                     if (fullName.toLowerCase().includes(query)) return true;
-                    
-                    // Search by code/id
                     if (comp.id.toLowerCase().includes(query)) return true;
-                    
-                    // Search by school
                     if (comp.school.toLowerCase().includes(query)) return true;
-                    
-                    // Search by any of their codes
                     if (comp.allCodes) {
                         for (const code of comp.allCodes) {
                             if (code.toLowerCase().includes(query)) return true;
                         }
                     }
-                    
                     return false;
                 });
                 
-                // Update title
                 el.rankingsTitle.textContent = `Search Results (${comps.length} found)`;
             } else {
                 comps = allComps.slice(0, 50);
@@ -1329,7 +1185,6 @@
             el.rankingsContainer.innerHTML = '';
             
             comps.forEach((comp, index) => {
-                // Get actual rank among ALL competitors
                 const actualRank = allComps.findIndex(c => c.id === comp.id) + 1;
                 
                 let displayName = comp.fullName || lookupFullName(comp.id);
@@ -1346,14 +1201,11 @@
                 const winRate = comp.rounds > 0 ? ((comp.wins / comp.rounds) * 100).toFixed(1) : 0;
                 const ratingGap = Math.round(comp.rating) - avgOpp;
                 
-                // Helper calculation for display
                 comp.affRounds = comp.affWins + comp.affLosses;
                 comp.negRounds = comp.negWins + comp.negLosses;
 
-                // Peak rating
                 const peakRating = Math.round(Math.max(...comp.ratingHistory));
                 
-                // Badge colors based on actual rank
                 let badgeClass = 'bg-white/10 text-white/60';
                 if (actualRank === 1) badgeClass = 'bg-yellow-500/20 text-yellow-400';
                 else if (actualRank === 2) badgeClass = 'bg-gray-400/20 text-gray-300';
@@ -1469,36 +1321,25 @@
         // Event Listeners
         el.exportBtn.addEventListener('click', exportRankings);
         
-        // Season select change handler
         el.seasonSelect.addEventListener('change', (e) => {
-            if (!state.processing) {
+            if (!state.processing && e.target.value) {
                 loadSeasonData(e.target.value);
             }
         });
         
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             populateSeasonDropdown();
         });
         
-        // Also try to load immediately if DOM is already ready
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            populateSeasonDropdown();
-        }
-        
-        // Search functionality
         let searchTimeout;
         el.searchInput.addEventListener('input', (e) => {
             const query = e.target.value;
-            
-            // Show/hide clear button
             if (query.length > 0) {
                 el.clearSearch.classList.remove('hidden');
             } else {
                 el.clearSearch.classList.add('hidden');
             }
             
-            // Debounce search
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 if (Object.keys(state.competitors).length > 0) {
@@ -1514,8 +1355,6 @@
                 renderRankings();
             }
         });
-        
-
         
         // Head to Head functionality
         const openH2HModal = () => {
@@ -1570,7 +1409,6 @@
             
             dropdown.classList.remove('hidden');
             
-            // Add click handlers
             dropdown.querySelectorAll('[data-id]').forEach(item => {
                 item.addEventListener('click', () => {
                     const compId = item.dataset.id;
@@ -1618,22 +1456,14 @@
                 return;
             }
             
-            // ========== SOPHISTICATED H2H PREDICTION ALGORITHM ==========
-            
-            // 1. BASE ELO PROBABILITY (40% weight)
             const affRating = aff.rating;
             const negRating = neg.rating;
             const eloProb = expectedScore(affRating, negRating);
             
-            // 2. SIDE-SPECIFIC PERFORMANCE (20% weight)
-            // How well does aff perform ON AFF, and how well does neg perform ON NEG?
             const affOnAffWinRate = aff.affRounds >= 3 ? aff.affWins / aff.affRounds : 0.5;
             const negOnNegWinRate = neg.negRounds >= 3 ? neg.negWins / neg.negRounds : 0.5;
-            // Normalize to probability advantage
             const sideProb = 0.5 + ((affOnAffWinRate - 0.5) * 0.5) - ((negOnNegWinRate - 0.5) * 0.5);
             
-            // 3. RECENT FORM / WIN TRENDS (15% weight)
-            // Look at last 10 rounds from rating history to determine momentum
             const getRecentTrend = (comp) => {
                 const history = comp.ratingHistory || [BASE_RATING];
                 if (history.length < 3) return 0;
@@ -1642,41 +1472,34 @@
                 const secondHalf = recent.slice(Math.floor(recent.length / 2));
                 const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
                 const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-                // Return momentum as a value between -1 (declining) and 1 (improving)
                 return Math.max(-1, Math.min(1, (secondAvg - firstAvg) / 100));
             };
             const affTrend = getRecentTrend(aff);
             const negTrend = getRecentTrend(neg);
             const trendProb = 0.5 + ((affTrend - negTrend) * 0.25);
             
-            // 4. HEAD-TO-HEAD HISTORY (25% weight if they've faced each other)
             const matchupKey = [aff.id, neg.id].sort().join('::');
             const history = state.matchupHistory[matchupKey] || [];
             let h2hProb = 0.5;
             let h2hWeight = 0;
             
             if (history.length > 0) {
-                // Calculate h2h record with recency weighting
                 let affH2HWins = 0;
                 let totalH2HWeight = 0;
                 history.forEach((match, idx) => {
-                    // More recent matches weighted higher
                     const recencyWeight = 1 + (idx / history.length);
                     const affWon = match.winnerId === aff.id;
                     if (affWon) affH2HWins += recencyWeight;
                     totalH2HWeight += recencyWeight;
                 });
                 h2hProb = affH2HWins / totalH2HWeight;
-                // H2H weight scales with number of matches (max 25% at 3+ matches)
                 h2hWeight = Math.min(0.25, history.length * 0.08);
             }
             
-            // 5. EXPERIENCE FACTOR (part of remaining weight)
             const affExperience = Math.min(1, aff.rounds / 50);
             const negExperience = Math.min(1, neg.rounds / 50);
             const expDiff = (affExperience - negExperience) * 0.1;
             
-            // 6. QUALITY OF COMPETITION FACED
             const getAvgOppRating = (comp) => {
                 const oppRatings = Array.from(comp.opponents).map(o => 
                     state.competitors[o]?.rating || BASE_RATING
@@ -1687,34 +1510,28 @@
             };
             const affAvgOpp = getAvgOppRating(aff);
             const negAvgOpp = getAvgOppRating(neg);
-            // If aff has faced tougher competition, slight bonus
             const scheduleStrengthAdj = (affAvgOpp - negAvgOpp) / 1000;
             
-            // ========== COMBINE ALL FACTORS ==========
-            // Weights: Elo 40%, Side 20%, Trend 15%, H2H variable (up to 25%), rest for adjustments
             const baseWeight = 1 - h2hWeight;
             let affWinProb = (
                 (eloProb * 0.40 * baseWeight) +
                 (sideProb * 0.20 * baseWeight) +
                 (trendProb * 0.15 * baseWeight) +
                 (h2hProb * h2hWeight) +
-                (0.5 * 0.25 * baseWeight) + // Base 50% for remaining weight
+                (0.5 * 0.25 * baseWeight) +
                 (expDiff * baseWeight) +
                 (scheduleStrengthAdj * baseWeight)
             );
             
-            // Normalize to ensure it's a valid probability
             affWinProb = Math.max(0.02, Math.min(0.98, affWinProb));
             const negWinProb = 1 - affWinProb;
             
-            // ========== UPDATE UI ==========
             el.h2hPrediction.classList.remove('hidden');
             el.h2hAffWinProb.textContent = `${Math.round(affWinProb * 100)}%`;
             el.h2hNegWinProb.textContent = `${Math.round(negWinProb * 100)}%`;
             el.h2hProbBarAff.style.width = `${affWinProb * 100}%`;
             el.h2hProbBarNeg.style.width = `${negWinProb * 100}%`;
             
-            // Generate prediction text with reasoning
             const affName = aff.fullName || lookupFullName(aff.id) || aff.id;
             const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
             const ratingDiff = Math.abs(affRating - negRating);
@@ -1729,9 +1546,8 @@
                 const confidence = prob > 0.75 ? "heavily" : prob > 0.65 ? "solidly" : prob > 0.55 ? "moderately" : "slightly";
                 predictionText = `${favored} is ${confidence} favored on ${favoredSide}`;
                 
-                // Add reasoning
                 const reasons = [];
-                if (ratingDiff > 100) reasons.push(`${ratingDiff} Elo gap`);
+                if (ratingDiff > 100) reasons.push(`${Math.round(ratingDiff)} Elo gap`);
                 if (history.length > 0) {
                     const affWins = history.filter(m => m.winnerId === aff.id).length;
                     const negWins = history.length - affWins;
@@ -1747,7 +1563,6 @@
             }
             el.h2hPredictionText.textContent = predictionText;
             
-            // Show matchup history
             renderMatchupHistory(aff, neg);
         };
         
@@ -1770,11 +1585,6 @@
             const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
             
             el.h2hHistoryContent.innerHTML = history.map(match => {
-                const affWon = match.winnerId === aff.id && match.winnerSide === 'aff' || 
-                               match.winnerId === aff.id && match.affId === aff.id;
-                const negWon = match.winnerId === neg.id;
-                
-                // Determine who was aff/neg in this specific match
                 const wasAffOnAff = match.affId === aff.id;
                 const winnerName = match.winnerId === aff.id ? affName : negName;
                 const winnerSide = match.winnerSide === 'aff' ? 'Aff' : 'Neg';
@@ -1800,7 +1610,6 @@
             }).join('');
         };
         
-        // H2H Event Listeners
         el.h2hBtn.addEventListener('click', openH2HModal);
         el.h2hClose.addEventListener('click', closeH2HModal);
         el.h2hModal.addEventListener('click', (e) => {
@@ -1839,7 +1648,6 @@
             }
         });
         
-        // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             if (!el.h2hAffSearch.contains(e.target) && !el.h2hAffDropdown.contains(e.target)) {
                 el.h2hAffDropdown.classList.add('hidden');
@@ -1849,3 +1657,5 @@
             }
         });
     </script>
+</body>
+</html>
