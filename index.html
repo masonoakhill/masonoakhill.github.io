@@ -374,8 +374,13 @@
         };
 
         const getSpeakerModifier = (speaks, isWin) => {
-            if (isWin) return speaks >= 29 ? 1.1 : 1.0;
-            return speaks >= 28.5 ? 0.9 : 1.0;
+            if (isWin) {
+                if (speaks >= 29) return 1.1;
+                return 1.0;
+            } else {
+                if (speaks >= 28.5) return 0.9;
+                return 1.0;
+            }
         };
 
         const normalizeName = (name) => {
@@ -684,6 +689,10 @@
                         const qualityFactor = (avgOppRating - 1500) / 500;
                         const winRateFactor = (winRate - 0.70) * 2;
                         ratingChange *= 1 + Math.min(0.25, qualityFactor * 0.15 + winRateFactor * 0.15);
+                    } else if (winRate >= 0.65 && avgOppRating >= BASE_RATING) {
+                        const qualityFactor = (avgOppRating - BASE_RATING) / 200;
+                        const consistencyBonus = 1 + Math.min(0.15, qualityFactor * 0.08 + (winRate - 0.65) * 0.3);
+                        ratingChange *= consistencyBonus;
                     }
                 }
             }
