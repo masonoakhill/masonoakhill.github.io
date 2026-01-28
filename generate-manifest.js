@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+/**
+ * Generate manifest.json for LD Debate Rankings
+ * 
+ * Run this script from the root of your repository:
+ *   node generate-manifest.js
+ * 
+ * It will scan the folder structure and create manifest.json
+ * with all tournaments, entries files, and round files.
+ */
 
 const fs = require('fs');
 const path = require('path');
@@ -8,7 +17,7 @@ const manifest = {
     data: {}
 };
 
-
+// Find all season folders (format: YYYY-YYYY)
 const rootDir = '.';
 const seasonPattern = /^\d{4}-\d{4}$/;
 
@@ -21,7 +30,7 @@ const seasons = entries.filter(entry => {
 manifest.seasons = seasons;
 
 for (const season of seasons) {
-    manifest.data[season] = { tournaments: [] };
+    manifest.data[season] = { tournamentOrder: [], tournaments: [] };
     
     const ldPath = path.join(rootDir, season, 'LD');
     if (!fs.existsSync(ldPath)) {
@@ -33,6 +42,9 @@ for (const season of seasons) {
         const stat = fs.statSync(path.join(ldPath, entry));
         return stat.isDirectory();
     });
+    
+    // Store tournament order (the order they appear in the filesystem)
+    manifest.data[season].tournamentOrder = tournamentDirs;
     
     for (const tournamentName of tournamentDirs) {
         const tournamentPath = path.join(ldPath, tournamentName);
@@ -53,7 +65,7 @@ for (const season of seasons) {
             }
         }
         
-        // Check for Prelims 
+        // Check for Prelims folder
         const prelimsPath = path.join(tournamentPath, 'Prelims');
         if (fs.existsSync(prelimsPath)) {
             tournament.prelims = fs.readdirSync(prelimsPath)
@@ -61,7 +73,7 @@ for (const season of seasons) {
                 .sort();
         }
         
-        // Check for Elims 
+        // Check for Elims folder
         const elimsPath = path.join(tournamentPath, 'Elims');
         if (fs.existsSync(elimsPath)) {
             tournament.elims = fs.readdirSync(elimsPath)
@@ -74,7 +86,7 @@ for (const season of seasons) {
     }
 }
 
-// manifest
+// Write manifest
 fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
 console.log(`\nManifest written to manifest.json`);
 console.log(`Seasons: ${seasons.join(', ')}`);
