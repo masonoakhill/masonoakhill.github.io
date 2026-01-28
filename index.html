@@ -79,12 +79,81 @@
         .btn:active:not(:disabled) {
             transform: translateY(0);
         }
+        
+        /* Debug Panel Styles */
+        .debug-tab.active {
+            color: rgba(255, 255, 255, 0.9);
+            border-color: rgb(59, 130, 246);
+        }
+        .debug-tab-content {
+            min-height: 200px;
+        }
+        #debugContent.open {
+            height: 400px;
+        }
+        .merge-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+        .merge-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .merge-card.warning {
+            border-color: rgba(251, 191, 36, 0.3);
+            background: rgba(251, 191, 36, 0.05);
+        }
+        .merge-card.error {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.05);
+        }
+        .code-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: monospace;
+            margin: 2px;
+        }
+        .code-tag.new {
+            background: rgba(34, 197, 94, 0.2);
+            color: rgb(134, 239, 172);
+        }
+        .code-tag.existing {
+            background: rgba(59, 130, 246, 0.2);
+            color: rgb(147, 197, 253);
+        }
+        .timeline-entry {
+            padding: 4px 8px;
+            border-left: 2px solid rgba(255, 255, 255, 0.1);
+            margin-left: 8px;
+        }
+        .timeline-entry.merge {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        .timeline-entry.new {
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+        .timeline-entry.unresolved {
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+        .timeline-entry.tournament {
+            border-color: rgba(168, 85, 247, 0.5);
+            background: rgba(168, 85, 247, 0.1);
+            margin-left: 0;
+            border-left-width: 4px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-[#0a0a0f] text-white antialiased">
     <div class="fixed inset-0 bg-gradient-to-br from-blue-950/30 via-transparent to-purple-950/20 pointer-events-none"></div>
     
-    <div class="relative max-w-5xl mx-auto px-6 py-12">
+    <div class="relative max-w-5xl mx-auto px-6 py-12 pb-32">
         <!-- Header -->
         <header class="mb-12">
             <div class="flex items-center justify-between">
@@ -156,7 +225,6 @@
                                 <input type="text" id="h2hAffSearch" placeholder="Search competitor..." 
                                     class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/30 outline-none focus:border-blue-500/50 transition-colors">
                                 <div id="h2hAffDropdown" class="absolute top-full left-0 right-0 mt-1 bg-[#1a1a24] border border-white/10 rounded-lg max-h-48 overflow-y-auto custom-scrollbar hidden z-10">
-                                    <!-- Dropdown items -->
                                 </div>
                             </div>
                             <div id="h2hAffSelected" class="mt-2 hidden">
@@ -182,7 +250,6 @@
                                 <input type="text" id="h2hNegSearch" placeholder="Search competitor..." 
                                     class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/30 outline-none focus:border-red-500/50 transition-colors">
                                 <div id="h2hNegDropdown" class="absolute top-full left-0 right-0 mt-1 bg-[#1a1a24] border border-white/10 rounded-lg max-h-48 overflow-y-auto custom-scrollbar hidden z-10">
-                                    <!-- Dropdown items -->
                                 </div>
                             </div>
                             <div id="h2hNegSelected" class="mt-2 hidden">
@@ -238,7 +305,6 @@
                     <div id="h2hHistory" class="hidden">
                         <h4 class="text-xs text-white/40 uppercase tracking-wider mb-3">Past Matchups</h4>
                         <div id="h2hHistoryContent" class="space-y-2">
-                            <!-- Matchup history items -->
                         </div>
                         <div id="h2hNoHistory" class="hidden text-center py-8 text-white/30">
                             <svg class="w-10 h-10 mx-auto mb-2 opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -269,74 +335,96 @@
             </div>
 
             <div id="rankingsContainer" class="hidden divide-y divide-white/5">
-                <!-- Rankings injected by JS -->
             </div>
         </div>
-
     </div>
 
-    <!-- Debug UI -->
-<div id="debugPanel" class="fixed bottom-0 left-0 right-0 h-64 bg-[#0a0a0f] border-t border-white/20 transform transition-transform duration-300 z-50 flex flex-col font-mono text-xs shadow-2xl">
-    <div class="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
-        <div class="flex items-center gap-4">
-            <h3 class="font-bold text-yellow-400">Resolution Debugger</h3>
-            <span class="text-white/40">Watch how codes are mapped to names</span>
+    <!-- Debug Panel -->
+    <div id="debugPanel" class="fixed bottom-0 left-0 right-0 z-40">
+        <!-- Toggle Bar -->
+        <div id="debugToggle" class="bg-[#1a1a24] border-t border-white/10 px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-yellow-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                    <path d="m9 12 2 2 4-4"/>
+                </svg>
+                <span class="text-sm font-medium text-white/80">Debug Panel</span>
+                <div class="flex items-center gap-2">
+                    <span id="debugMergeCount" class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full">0 merges</span>
+                    <span id="debugUnresolvedCount" class="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full hidden">0 unresolved</span>
+                </div>
+            </div>
+            <svg id="debugChevron" class="w-5 h-5 text-white/40 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
         </div>
-        <div class="flex items-center gap-3">
-            <button onclick="clearDebugLog()" class="text-white/40 hover:text-white">Clear</button>
-            <button onclick="document.getElementById('debugPanel').classList.toggle('translate-y-full')" class="text-white/40 hover:text-white">
-                ▼
-            </button>
+        
+        <!-- Debug Content -->
+        <div id="debugContent" class="bg-[#0d0d14] border-t border-white/5 max-h-[60vh] overflow-hidden transition-all duration-300" style="height: 0;">
+            <div class="h-full flex flex-col">
+                <!-- Tabs -->
+                <div class="flex border-b border-white/10 px-4">
+                    <button class="debug-tab active px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="merges">
+                        Merges
+                    </button>
+                    <button class="debug-tab px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="unresolved">
+                        Unresolved
+                    </button>
+                    <button class="debug-tab px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="competitors">
+                        All Competitors
+                    </button>
+                    <button class="debug-tab px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="timeline">
+                        Resolution Log
+                    </button>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="px-4 py-3 border-b border-white/5">
+                    <div class="relative">
+                        <input type="text" id="debugSearch" placeholder="Search names, codes, tournaments..." 
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 pl-10 text-sm text-white placeholder-white/30 outline-none focus:border-white/30 transition-colors">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    </div>
+                </div>
+                
+                <!-- Tab Content -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                    <!-- Merges Tab -->
+                    <div id="debugTabMerges" class="debug-tab-content">
+                        <div id="debugMergesList" class="space-y-2"></div>
+                        <div id="debugMergesEmpty" class="hidden text-center py-8 text-white/30">
+                            <p class="text-sm">No merges to display</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Unresolved Tab -->
+                    <div id="debugTabUnresolved" class="debug-tab-content hidden">
+                        <div id="debugUnresolvedList" class="space-y-3"></div>
+                        <div id="debugUnresolvedEmpty" class="hidden text-center py-8 text-white/30">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-green-500/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            <p class="text-sm text-green-400/60">All codes resolved successfully!</p>
+                        </div>
+                    </div>
+                    
+                    <!-- All Competitors Tab -->
+                    <div id="debugTabCompetitors" class="debug-tab-content hidden">
+                        <div id="debugCompetitorsList" class="space-y-1"></div>
+                    </div>
+                    
+                    <!-- Timeline Tab -->
+                    <div id="debugTabTimeline" class="debug-tab-content hidden">
+                        <div id="debugTimelineList" class="space-y-1 font-mono text-xs"></div>
+                        <div id="debugTimelineEmpty" class="hidden text-center py-8 text-white/30">
+                            <p class="text-sm">Resolution log will appear here during processing</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div id="debugLogContent" class="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
-        <!-- Logs go here -->
-    </div>
-</div>
-
-       // --- DEBUGGING UTILS ---
-    const addDebugLog = (tournament, originalCode, resolvedName, method) => {
-        const container = document.getElementById('debugLogContent');
-        if (!container) return;
-
-        const isHarker = originalCode.toLowerCase().includes('harker');
-        const entry = document.createElement('div');
-        entry.className = `log-entry ${isHarker ? 'log-harker' : ''}`;
-        
-        entry.innerHTML = `
-            <span class="log-tourn truncate">${tournament || 'Global'}</span>
-            <span class="log-code truncate">${originalCode}</span>
-            <span class="log-arrow">→</span>
-            <span class="log-name truncate">${resolvedName || '???'}</span>
-            <span class="log-detail">${method}</span>
-        `;
-        
-        container.insertBefore(entry, container.firstChild);
-        
-        // Keep log size manageable
-        if (container.children.length > 200) {
-            container.removeChild(container.lastChild);
-        }
-    };
-
-    window.clearDebugLog = () => {
-        document.getElementById('debugLogContent').innerHTML = '';
-    };
-
-<style>
-    .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
-    .log-time { color: rgba(255,255,255,0.3); min-width: 60px; }
-    .log-tourn { color: #60a5fa; min-width: 120px; }
-    .log-code { color: #f472b6; min-width: 100px; }
-    .log-arrow { color: rgba(255,255,255,0.3); }
-    .log-name { color: #4ade80; font-weight: bold; }
-    .log-detail { color: rgba(255,255,255,0.5); margin-left: auto; }
-    .log-warn { background: rgba(239, 68, 68, 0.1); }
-    .log-harker { background: rgba(234, 179, 8, 0.1); border-left: 2px solid #eab308; }
-</style>
 
     <script>
-        // State
+        // ============================================
+        // STATE
+        // ============================================
         const state = {
             competitors: {},
             tournaments: [],
@@ -345,38 +433,36 @@
                 regionalDiversityPenalty: true,
                 walkoversEnabled: true
             },
-            codeToName: {},
-            nameToCanonicalCode: {},
-            codeAliases: {},
-            schoolEntriesMap: {},
-            abbrevToFullCode: {},
             tournamentEntriesMap: {},
-            tournamentSchoolMap: {},
-            matchupHistory: {}, // Stores all head-to-head matchups
-            h2hSelection: { aff: null, neg: null }
+            matchupHistory: {},
+            h2hSelection: { aff: null, neg: null },
+            // Debug state
+            debugLog: [],
+            mergeEvents: [],
+            unresolvedCodes: {},
+            competitorCreations: {}
         };
 
-        // Constants
+        // ============================================
+        // CONSTANTS
+        // ============================================
         const BASE_RATING = 1500;
         const BASE_K = 32;
-        
         const BID_MULTIPLIERS = { 'octas': 1.3, 'quarters': 1.2, 'semis': 1.1, 'finals': 1.0 };
         const ELIM_BONUSES = { 'quarters': 10, 'semis': 20, 'finals': 30, 'winner': 40 };
 
-        // GitHub Configuration - Since we're on GitHub Pages, we can fetch directly from the same origin
         const GITHUB_CONFIG = {
             owner: 'masonoakhill',
             repo: 'masonoakhill.github.io',
             branch: 'main'
         };
 
-        // For GitHub Pages, fetch directly from the same origin (fastest)
         const getDirectUrl = (path) => `/${path}`;
-        
-        // File cache to avoid re-fetching
         const fileCache = new Map();
 
-        // DOM Elements
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
         const el = {
             seasonSelect: document.getElementById('seasonSelect'),
             loadingIndicator: document.getElementById('loadingIndicator'),
@@ -416,255 +502,234 @@
             h2hHistoryContent: document.getElementById('h2hHistoryContent'),
             h2hNoHistory: document.getElementById('h2hNoHistory')
         };
-        
-        // Settings (hardcoded since we removed the UI)
-        state.settings = {
-            regionalDiversityPenalty: true,
-            walkoversEnabled: true
+
+        // ============================================
+        // DEBUG LOGGING FUNCTIONS
+        // ============================================
+        const debugLog = (type, message, data = {}) => {
+            const entry = {
+                timestamp: Date.now(),
+                type: type,
+                message: message,
+                data: data
+            };
+            state.debugLog.push(entry);
+            
+            const colors = {
+                'new': 'color: #22c55e',
+                'merge': 'color: #3b82f6', 
+                'unresolved': 'color: #ef4444',
+                'tournament': 'color: #a855f7; font-weight: bold',
+                'info': 'color: #6b7280',
+                'warning': 'color: #f59e0b'
+            };
+            console.log(`%c[${type.toUpperCase()}] ${message}`, colors[type] || '', data);
         };
 
-        // ==========================================
-        // 1. DEBUGGING UTILITIES (Must be first)
-        // ==========================================
-        const addDebugLog = (tournament, originalCode, resolvedName, method) => {
-            const container = document.getElementById('debugLogContent');
-            if (!container) return;
-
-            const isHarker = originalCode.toLowerCase().includes('harker');
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${isHarker ? 'log-harker' : ''}`;
-            
-            entry.innerHTML = `
-                <span class="log-tourn truncate">${tournament || 'Global'}</span>
-                <span class="log-code truncate">${originalCode}</span>
-                <span class="log-arrow">→</span>
-                <span class="log-name truncate">${resolvedName || '???'}</span>
-                <span class="log-detail">${method}</span>
-            `;
-            
-            container.insertBefore(entry, container.firstChild);
-            
-            // Keep log size manageable
-            if (container.children.length > 200) {
-                container.removeChild(container.lastChild);
-            }
+        const recordMerge = (canonicalName, newCode, tournament, existingCodes) => {
+            const mergeEvent = {
+                id: state.mergeEvents.length,
+                canonicalName: canonicalName,
+                newCode: newCode,
+                tournament: tournament,
+                existingCodes: [...existingCodes],
+                timestamp: Date.now()
+            };
+            state.mergeEvents.push(mergeEvent);
+            debugLog('merge', `"${newCode}" → "${canonicalName}"`, { tournament, existingCodes: [...existingCodes] });
         };
 
-        window.clearDebugLog = () => {
-            const container = document.getElementById('debugLogContent');
-            if (container) container.innerHTML = '';
+        const recordNewCompetitor = (name, code, tournament) => {
+            state.competitorCreations[name] = {
+                firstCode: code,
+                firstTournament: tournament,
+                timestamp: Date.now()
+            };
+            debugLog('new', `Created "${name}" from "${code}"`, { tournament });
         };
 
-        // ==========================================
-        // 2. STRICT MATCHING LOGIC
-        // ==========================================
-        const abbreviationMatchesName = (abbrev, fullName) => {
-            if (!abbrev || !fullName) return false;
-            const nameParts = fullName.trim().split(/\s+/);
-            if (nameParts.length === 0) return false;
-            
-            let namePartIndex = 0;
-            let charInPart = 0;
-            
-            for (let i = 0; i < abbrev.length; i++) {
-                const char = abbrev[i];
-                // Check if char is uppercase (and matches start of a name part)
-                const isUpper = char.toUpperCase() !== char.toLowerCase() && char === char.toUpperCase();
-                
-                if (isUpper) {
-                    // Find start of next name part matching this Initial
-                    let found = false;
-                    while (namePartIndex < nameParts.length) {
-                        const part = nameParts[namePartIndex];
-                        if (part.charAt(0).toUpperCase() === char) {
-                            found = true;
-                            charInPart = 1; // Consumed first letter
-                            namePartIndex++; // Move to next part
-                            break;
-                        }
-                        namePartIndex++;
-                    }
-                    if (!found) return false;
-                } else {
-                    // Lowercase: Must match IMMEDIATE next char in PREVIOUS matched part
-                    const currentPartIndex = namePartIndex - 1;
-                    if (currentPartIndex < 0) return false;
-                    
-                    const part = nameParts[currentPartIndex];
-                    if (charInPart >= part.length) return false;
-                    
-                    // STRICT CHECK: 'h' in SSh must match 'h' in Shah
-                    if (part.charAt(charInPart).toLowerCase() !== char.toLowerCase()) {
-                        return false;
-                    }
-                    charInPart++;
-                }
+        const recordUnresolved = (code, tournament) => {
+            if (!state.unresolvedCodes[tournament]) {
+                state.unresolvedCodes[tournament] = new Set();
             }
-            return true;
+            state.unresolvedCodes[tournament].add(code);
+            debugLog('unresolved', `"${code}" not found in entries`, { tournament });
         };
 
-        // ==========================================
-        // 3. TOURNAMENT SCOPED LOOKUP
-        // ==========================================
-        const lookupFullNameForTournament = (code, tournamentName) => {
-            if (!code) return null;
-            const codeLower = code.toLowerCase();
+        // ============================================
+        // HELPER FUNCTIONS
+        // ============================================
+        const expectedScore = (ratingA, ratingB) => 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
 
-            // A. Check entries.csv for this specific tournament (Highest Priority)
-            if (state.tournamentEntriesMap[tournamentName]) {
-                const entry = state.tournamentEntriesMap[tournamentName][codeLower];
-                if (entry) {
-                    return entry.name; // Trust the CSV explicitly
-                }
-            }
-
-            // B. Attempt Strict Abbreviation Match within this Tournament's Roster
-            const school = extractSchoolFromCode(code);
-            const abbrev = extractAbbrevFromCode(code); // e.g., "SSh"
-            
-            if (school && abbrev) {
-                const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
-                const entries = state.tournamentSchoolMap[tournamentSchoolKey] || [];
-                
-                let bestMatch = null;
-                let matchCount = 0;
-
-                for (const entry of entries) {
-                    if (abbreviationMatchesName(abbrev, entry.name)) {
-                        bestMatch = entry.name;
-                        matchCount++;
-                        
-                        // Optimization: If code contains lowercase (specific), stop at first match
-                        // "SSh" is specific. "SS" is ambiguous.
-                        if (abbrev !== abbrev.toUpperCase()) {
-                            addDebugLog(tournamentName, code, entry.name, 'Strict Abbrev Match');
-                            return entry.name;
-                        }
-                    }
-                }
-
-                if (matchCount === 1) {
-                    addDebugLog(tournamentName, code, bestMatch, 'Single Candidate');
-                    return bestMatch;
-                }
-                
-                if (matchCount > 1) {
-                    addDebugLog(tournamentName, code, bestMatch, 'WARNING: Ambiguous');
-                    return bestMatch; // Returns first found (standard convention)
-                }
-            }
-            return null; // Don't fall back to global here, let getCompetitor handle it
+        const getKFactor = (tournamentNum, isTop50) => {
+            const baseK = isTop50 ? 28 : BASE_K;
+            if (tournamentNum <= 3) return baseK * 1.25;
+            if (tournamentNum >= 8) return baseK * 0.75;
+            return baseK;
         };
 
-        // ==========================================
-        // 4. GLOBAL FALLBACK LOOKUP
-        // ==========================================
-        const lookupFullName = (code) => {
-            if (!code) return null;
-            // Check global cache
-            if (state.codeToName[code]) return state.codeToName[code];
-            
-            const codeLower = code.toLowerCase();
-            for (const [key, value] of Object.entries(state.codeToName)) {
-                if (key.toLowerCase() === codeLower) return value;
-            }
-            
-            return null; // We removed the fuzzy logic from here to prevent pollution
+        const getSpeakerModifier = (speaks, isWin) => {
+            if (isWin) return speaks >= 29 ? 1.1 : 1.0;
+            return speaks >= 28.5 ? 0.9 : 1.0;
         };
 
-        // ==========================================
-        // 5. GET COMPETITOR (Main Entry Point)
-        // ==========================================
-        const getCompetitor = (id, tournamentName = null) => {
-            let resolvedFullName = null;
-            let resolvedFullCode = null;
-            let school = '';
-            
-            // Step 1: Try Tournament-Specific Resolution first
-            if (tournamentName) {
-                resolvedFullName = lookupFullNameForTournament(id, tournamentName);
-                
-                // If resolved, find the full code associated with that name in this tournament
-                if (resolvedFullName && state.tournamentEntriesMap[tournamentName]) {
-                    // Reverse search: Find the entry object that has this Name
-                    const entries = Object.values(state.tournamentEntriesMap[tournamentName]);
-                    const entry = entries.find(e => e.name === resolvedFullName);
-                    if (entry) resolvedFullCode = entry.fullCode;
-                }
-            }
-            
-            // Step 2: Global Fallback
-            if (!resolvedFullName) {
-                resolvedFullName = lookupFullName(id);
-            }
-            if (!resolvedFullCode) {
-                resolvedFullCode = state.abbrevToFullCode[id] || id;
-            }
+        const normalizeName = (name) => {
+            if (!name) return '';
+            return name.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
+        };
 
-            // Step 3: Determine Canonical ID
-            let canonicalId = id; // Default to raw code
-            if (resolvedFullName) {
-                const normName = normalizeName(resolvedFullName);
-                if (state.nameToCanonicalCode[normName]) {
-                    canonicalId = state.nameToCanonicalCode[normName];
-                } else {
-                    // Create new canonical entry
-                    canonicalId = resolvedFullCode || id;
-                    state.nameToCanonicalCode[normName] = canonicalId;
-                }
-                
-                // LOGGING: Only log interesting merges (like Harker)
-                if (canonicalId !== id && id.toLowerCase().includes('harker')) {
-                     addDebugLog(tournamentName, id, state.competitors[canonicalId]?.fullName || resolvedFullName, 'Merged to Canonical');
-                }
-                
-                school = extractSchoolFromCode(resolvedFullCode || id);
-            } else {
-                // If we still don't have a name, just use the code
-                canonicalId = getCanonicalCode(resolvedFullCode || id);
-                school = extractSchoolFromCode(canonicalId);
-            }
+        const normalizeCode = (code) => {
+            if (!code) return '';
+            return code.toLowerCase().replace(/\s+/g, ' ').trim();
+        };
 
-            // Step 4: Create/Retrieve Competitor Object
-            if (!state.competitors[canonicalId]) {
-                state.competitors[canonicalId] = {
-                    id: canonicalId,
-                    fullName: resolvedFullName,
-                    school: school,
-                    allCodes: new Set([canonicalId]),
-                    rating: BASE_RATING,
-                    ratingHistory: [BASE_RATING],
-                    tournaments: 0, rounds: 0, wins: 0, losses: 0,
-                    affWins: 0, affLosses: 0, negWins: 0, negLosses: 0,
-                    opponents: new Set(), opponentSchools: new Set(),
-                    tournamentStats: {}, walkovers: 0, tournamentHistory: [],
-                    isTop50: false
+        const extractSchoolFromCode = (code) => {
+            if (!code) return '';
+            const parts = code.trim().split(/\s+/);
+            return parts.length < 2 ? code : parts.slice(0, -1).join(' ');
+        };
+
+        const log = (msg) => console.log(msg);
+
+        // ============================================
+        // NAME RESOLUTION - STRICT EXACT MATCH ONLY
+        // ============================================
+        const resolveCodeForTournament = (code, tournamentName) => {
+            if (!code || !tournamentName) return null;
+            
+            const tournamentEntries = state.tournamentEntriesMap[tournamentName];
+            if (!tournamentEntries) {
+                console.warn(`[Resolution] No entries loaded for tournament: ${tournamentName}`);
+                return null;
+            }
+            
+            const normalizedCode = normalizeCode(code);
+            const entry = tournamentEntries[normalizedCode];
+            
+            if (entry) {
+                return {
+                    name: entry.name,
+                    originalCode: entry.originalCode,
+                    school: entry.school
                 };
             }
+            
+            // NO FALLBACK - return null if not found exactly
+            return null;
+        };
 
+        // Create a new competitor object
+        const createNewCompetitor = (id, school, fullName) => {
+            return {
+                id: id,
+                school: school || '',
+                fullName: fullName,
+                allCodes: new Set(),
+                rating: BASE_RATING,
+                tournaments: 0,
+                rounds: 0,
+                wins: 0,
+                losses: 0,
+                affWins: 0,
+                affLosses: 0,
+                negWins: 0,
+                negLosses: 0,
+                isTop50: false,
+                opponents: new Set(),
+                opponentSchools: new Set(),
+                walkovers: 0,
+                tournamentHistory: [],
+                tournamentStats: {},
+                ratingHistory: [BASE_RATING],
+                isUnresolved: false,
+                unresolvedAtTournaments: []
+            };
+        };
+
+        // MAIN COMPETITOR RESOLUTION FUNCTION
+        const getCompetitor = (code, tournamentName = null) => {
+            // Step 1: Try EXACT match from tournament entries
+            let resolved = null;
+            if (tournamentName) {
+                resolved = resolveCodeForTournament(code, tournamentName);
+            }
+            
+            if (!resolved) {
+                // CODE NOT FOUND IN ENTRIES - this is a data issue!
+                if (tournamentName) {
+                    recordUnresolved(code, tournamentName);
+                }
+                
+                // Create isolated competitor with tournament-specific ID
+                const isolatedId = tournamentName 
+                    ? `UNRESOLVED::${tournamentName}::${code}`
+                    : `UNRESOLVED::${code}`;
+                
+                if (!state.competitors[isolatedId]) {
+                    state.competitors[isolatedId] = createNewCompetitor(
+                        isolatedId, 
+                        extractSchoolFromCode(code), 
+                        null
+                    );
+                    state.competitors[isolatedId].isUnresolved = true;
+                    state.competitors[isolatedId].unresolvedAtTournaments = [tournamentName || 'unknown'];
+                    state.competitors[isolatedId].allCodes.add(code);
+                }
+                
+                return state.competitors[isolatedId];
+            }
+            
+            // Step 2: FOUND! Use normalized NAME as the canonical ID
+            const normalizedName = normalizeName(resolved.name);
+            const canonicalId = normalizedName;
+            
+            // Step 3: Check if this is a NEW competitor or MERGE
+            const isNew = !state.competitors[canonicalId];
+            const existingCodes = isNew ? new Set() : new Set(state.competitors[canonicalId].allCodes);
+            
+            // Step 4: Get or create competitor using name as ID
+            if (isNew) {
+                state.competitors[canonicalId] = createNewCompetitor(
+                    canonicalId,
+                    resolved.school,
+                    resolved.name
+                );
+                recordNewCompetitor(resolved.name, code, tournamentName);
+            }
+            
             const comp = state.competitors[canonicalId];
-            comp.allCodes.add(id);
-            if (resolvedFullCode && resolvedFullCode !== id) comp.allCodes.add(resolvedFullCode);
-            if (resolvedFullName && !comp.fullName) comp.fullName = resolvedFullName;
+            
+            // Step 5: Check if this code is new for this competitor (a merge)
+            const codeIsNew = !comp.allCodes.has(code) && !comp.allCodes.has(resolved.originalCode);
+            
+            if (codeIsNew && !isNew) {
+                // This is a MERGE - an existing competitor is getting a new code
+                recordMerge(resolved.name, code, tournamentName, existingCodes);
+            }
+            
+            // Step 6: Update competitor info
+            comp.allCodes.add(code);
+            comp.allCodes.add(resolved.originalCode);
+            
+            if (!comp.school && resolved.school) {
+                comp.school = resolved.school;
+            }
             
             return comp;
         };
-        
-        // Logging (console only now)
-        const log = (msg) => console.log(msg);
-        const clearLog = () => {};
-        const showLog = () => {};
 
+        // ============================================
+        // ROUND PROCESSING
+        // ============================================
         const processRound = (competitorId, opponentId, won, speaks, tournamentInfo, side, roundName, isWalkover = false) => {
             const tournamentName = tournamentInfo.name;
             const comp = getCompetitor(competitorId, tournamentName);
             const opp = getCompetitor(opponentId, tournamentName);
             
-            // Use the opponent's canonical ID (their actual ID in state.competitors)
             comp.opponents.add(opp.id);
             comp.opponentSchools.add(opp.school);
             
-            // Record matchup history (only once per round, from the perspective of the first caller)
+            // Record matchup history
             if (side === 'aff' && !isWalkover) {
                 const matchupKey = [comp.id, opp.id].sort().join('::');
                 if (!state.matchupHistory[matchupKey]) {
@@ -675,8 +740,8 @@
                     round: roundName || 'Unknown',
                     affId: comp.id,
                     negId: opp.id,
-                    affName: comp.fullName || lookupFullName(comp.id) || comp.id,
-                    negName: opp.fullName || lookupFullName(opp.id) || opp.id,
+                    affName: comp.fullName || comp.id,
+                    negName: opp.fullName || opp.id,
                     winnerId: won ? comp.id : opp.id,
                     winnerSide: won ? 'aff' : 'neg'
                 });
@@ -732,6 +797,9 @@
             }
         };
 
+        // ============================================
+        // CSV PARSING
+        // ============================================
         const parseCSV = (text) => {
             const lines = text.split(/\r?\n/).filter(line => line.trim());
             if (lines.length === 0) return [];
@@ -779,95 +847,41 @@
             return null;
         };
 
+        // Parse entries file - store EXACT mappings only
         const parseEntriesFile = (text, tournamentName) => {
             const rows = parseCSV(text);
             const mappings = [];
             
-            // Initialize tournament-specific entries map
             if (!state.tournamentEntriesMap[tournamentName]) {
                 state.tournamentEntriesMap[tournamentName] = {};
             }
             
             for (const row of rows) {
-                let fullCode = (row.code || '').toString().trim();
+                let code = (row.code || '').toString().trim();
                 let name = (row.entry || row.name || '').toString().trim();
                 let school = (row.institution || row.school || '').toString().trim();
                 
-                if (name && fullCode) {
-                    // Store global code-to-name mapping
-                    state.codeToName[fullCode] = name;
+                if (name && code) {
+                    const normalizedCode = normalizeCode(code);
                     
-                    // Store tournament-specific mapping: abbreviated code -> full name
-                    // This prevents "School JD" from matching wrong person at different tournaments
-                    const abbrevCode = extractSchoolFromCode(fullCode) + ' ' + extractAbbrevFromCode(fullCode);
-                    state.tournamentEntriesMap[tournamentName][fullCode.toLowerCase()] = { name, fullCode, school };
+                    state.tournamentEntriesMap[tournamentName][normalizedCode] = {
+                        name: name,
+                        originalCode: code,
+                        school: school
+                    };
                     
-                    if (school) {
-                        const schoolKey = school.toLowerCase();
-                        if (!state.schoolEntriesMap[schoolKey]) state.schoolEntriesMap[schoolKey] = [];
-                        state.schoolEntriesMap[schoolKey].push({ name, fullCode, tournament: tournamentName });
-                        
-                        // Also store by tournament + school for precise lookups
-                        const tournamentSchoolKey = `${tournamentName}::${schoolKey}`;
-                        if (!state.tournamentSchoolMap[tournamentSchoolKey]) state.tournamentSchoolMap[tournamentSchoolKey] = [];
-                        state.tournamentSchoolMap[tournamentSchoolKey].push({ name, fullCode });
-                    }
-                    mappings.push({ fullCode, name, school });
+                    mappings.push({ code, name, school });
                 }
             }
             
             log(`  Loaded ${mappings.length} entries for ${tournamentName}`);
+            debugLog('info', `Loaded ${mappings.length} entries for ${tournamentName}`);
             return mappings;
         };
 
-        const buildMergeMappings = () => {
-            // Build a map of full codes to their resolved names
-            // Only merge FULL codes (like "Harker Ansh Sheth") that have the same name
-            // Do NOT merge abbreviated codes directly - those are resolved per-tournament
-            
-            const nameToFullCodesList = {};
-            
-            // Only use codeToName which maps FULL codes to names
-            for (const [fullCode, name] of Object.entries(state.codeToName)) {
-                const normalizedName = normalizeName(name);
-                if (!normalizedName) continue;
-                
-                // Only include full codes (codes that contain a full name, not abbreviations)
-                // Full codes typically have more than 2 parts and the last part isn't all caps
-                const parts = fullCode.trim().split(/\s+/);
-                const lastPart = parts[parts.length - 1];
-                const isAbbreviation = lastPart.length <= 4 && lastPart === lastPart.toUpperCase();
-                
-                // Skip abbreviated codes - they should be resolved per-tournament
-                if (isAbbreviation) continue;
-                
-                if (!nameToFullCodesList[normalizedName]) nameToFullCodesList[normalizedName] = [];
-                if (!nameToFullCodesList[normalizedName].includes(fullCode)) {
-                    nameToFullCodesList[normalizedName].push(fullCode);
-                }
-            }
-            
-            let mergeCount = 0;
-            for (const [normalizedName, codes] of Object.entries(nameToFullCodesList)) {
-                if (codes.length <= 1) continue;
-                
-                // Sort by length (shorter first) then alphabetically
-                codes.sort((a, b) => a.length - b.length || a.localeCompare(b));
-                const canonicalCode = codes[0];
-                state.nameToCanonicalCode[normalizedName] = canonicalCode;
-                
-                for (const code of codes) {
-                    if (code !== canonicalCode) {
-                        state.codeAliases[code] = canonicalCode;
-                        mergeCount++;
-                    }
-                }
-                log(`  Merging: ${codes.join(' + ')} → "${state.codeToName[canonicalCode]}"`);
-            }
-            return mergeCount;
-        };
-
-        // Fast file fetch with caching
+        // ============================================
+        // FILE LOADING
+        // ============================================
         const fetchFile = async (path) => {
             if (fileCache.has(path)) return fileCache.get(path);
             try {
@@ -883,20 +897,6 @@
             }
         };
 
-        // Try to fetch a file, return null if it doesn't exist (no error logging)
-        const tryFetchFile = async (path) => {
-            try {
-                const response = await fetch(getDirectUrl(path), { method: 'HEAD' });
-                if (response.ok) {
-                    return fetchFile(path);
-                }
-                return null;
-            } catch (e) {
-                return null;
-            }
-        };
-
-        // Load manifest or discover structure
         const loadManifest = async () => {
             const text = await fetchFile('manifest.json');
             if (text) {
@@ -909,22 +909,18 @@
             return null;
         };
 
-        // Discover seasons by trying known patterns
         const discoverSeasons = async () => {
-            // Try manifest first
             const manifest = await loadManifest();
             if (manifest && manifest.seasons) {
                 return manifest.seasons.sort().reverse();
             }
             
-            // Fallback: try common season years
             const currentYear = new Date().getFullYear();
             const possibleSeasons = [];
             for (let year = currentYear + 1; year >= 2020; year--) {
                 possibleSeasons.push(`${year}-${year + 1}`);
             }
             
-            // Check which seasons exist by trying to fetch their LD folder
             const checks = await Promise.all(
                 possibleSeasons.map(async (season) => {
                     const response = await fetch(getDirectUrl(`${season}/LD/`), { method: 'HEAD' }).catch(() => null);
@@ -935,31 +931,11 @@
             return checks.filter(Boolean);
         };
 
-        // Populate season dropdown
-        const populateSeasonDropdown = async () => {
-            const seasons = await discoverSeasons();
-            if (seasons.length === 0) {
-                el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
-                return;
-            }
-            
-            el.seasonSelect.innerHTML = seasons.map(season => 
-                `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
-            ).join('');
-            
-            loadSeasonData(seasons[0]);
-        };
-
-        // Discover tournaments from manifest or by scanning
         const discoverTournaments = async (season, manifest) => {
-            // If manifest has tournament data, use it
             if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournaments.length > 0) {
                 return manifest.data[season].tournaments;
             }
             
-            // Otherwise, we need to discover - fetch the index page and parse links
-            // This is a workaround since we can't list directories on GitHub Pages
-            // We'll try to fetch a tournaments.txt file that lists tournament names
             const tournamentsListText = await fetchFile(`${season}/LD/tournaments.txt`);
             if (tournamentsListText) {
                 const tournamentNames = tournamentsListText.split('\n').map(t => t.trim()).filter(Boolean);
@@ -968,7 +944,6 @@
                 }));
             }
             
-            // Last resort: try to parse HTML directory listing (works on some servers)
             try {
                 const response = await fetch(getDirectUrl(`${season}/LD/`));
                 if (response.ok) {
@@ -986,7 +961,6 @@
             return [];
         };
 
-        // Extract directory links from HTML (GitHub Pages directory listing)
         const extractLinksFromHTML = (html) => {
             const links = [];
             const regex = /href="([^"]+)\/"/g;
@@ -1000,7 +974,6 @@
             return links;
         };
 
-        // Discover structure for a single tournament
         const discoverTournamentStructure = async (season, tournamentName) => {
             const basePath = `${season}/LD/${tournamentName}`;
             const tournament = {
@@ -1011,46 +984,25 @@
                 elims: []
             };
 
-            // Try to find entries file
             const entriesFile = await fetchFile(`${basePath}/entries.csv`);
             if (entriesFile) {
                 tournament.entries = 'entries.csv';
                 tournament.entriesContent = entriesFile;
             }
 
-            // Try to discover prelim files by trying common patterns
-            const prelimPromises = [];
-            for (let i = 1; i <= 10; i++) {
-                prelimPromises.push(
-                    fetch(getDirectUrl(`${basePath}/Prelims/Round${i}.csv`), { method: 'HEAD' })
-                        .then(r => r.ok ? `Round${i}.csv` : null)
-                        .catch(() => null)
-                );
-                prelimPromises.push(
-                    fetch(getDirectUrl(`${basePath}/Prelims/Tabroom-${1400000 + i}.csv`), { method: 'HEAD' })
-                        .then(r => r.ok ? `Tabroom-${1400000 + i}.csv` : null)
-                        .catch(() => null)
-                );
-            }
-
-            // Try to discover prelims from HTML listing
             try {
                 const prelimsHtml = await fetch(getDirectUrl(`${basePath}/Prelims/`)).then(r => r.ok ? r.text() : '');
-                const prelimFiles = extractCSVLinksFromHTML(prelimsHtml);
-                tournament.prelims = prelimFiles;
+                tournament.prelims = extractCSVLinksFromHTML(prelimsHtml);
             } catch (e) {}
 
-            // Try to discover elims from HTML listing  
             try {
                 const elimsHtml = await fetch(getDirectUrl(`${basePath}/Elims/`)).then(r => r.ok ? r.text() : '');
-                const elimFiles = extractCSVLinksFromHTML(elimsHtml);
-                tournament.elims = elimFiles;
+                tournament.elims = extractCSVLinksFromHTML(elimsHtml);
             } catch (e) {}
 
             return tournament;
         };
 
-        // Extract CSV file links from HTML
         const extractCSVLinksFromHTML = (html) => {
             const links = [];
             const regex = /href="([^"]+\.csv)"/gi;
@@ -1061,18 +1013,33 @@
             return links;
         };
 
+        const populateSeasonDropdown = async () => {
+            const seasons = await discoverSeasons();
+            if (seasons.length === 0) {
+                el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
+                return;
+            }
+            
+            el.seasonSelect.innerHTML = seasons.map(season => 
+                `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
+            ).join('');
+            
+            loadSeasonData(seasons[0]);
+        };
+
+        // ============================================
+        // MAIN DATA LOADING
+        // ============================================
         const loadSeasonData = async (season) => {
             state.processing = true;
             state.competitors = {};
             state.tournaments = [];
-            state.codeToName = {};
-            state.nameToCanonicalCode = {};
-            state.codeAliases = {};
-            state.schoolEntriesMap = {};
-            state.abbrevToFullCode = {};
             state.tournamentEntriesMap = {};
-            state.tournamentSchoolMap = {};
             state.matchupHistory = {};
+            state.unresolvedCodes = {};
+            state.debugLog = [];
+            state.mergeEvents = [];
+            state.competitorCreations = {};
             
             el.loadingIndicator.classList.remove('hidden');
             el.emptyState.classList.add('hidden');
@@ -1083,39 +1050,33 @@
             const updateLoading = (text) => { if (loadingText) loadingText.textContent = text; };
             
             updateLoading('Loading...');
+            debugLog('info', `Starting to load season ${season}`);
 
             try {
-                // Load manifest for fast loading
                 const manifest = await loadManifest();
                 
                 if (!manifest) {
                     updateLoading('No manifest found. Scanning files (Slow)...');
-                    console.warn('Manifest.json not found or invalid. Run "node generate-manifest.js" locally to speed up loading.');
-                    // Add a small delay so the user sees the message
+                    debugLog('warning', 'No manifest found - scanning files');
                     await new Promise(r => setTimeout(r, 1000));
                 } else {
                     updateLoading('Loading from manifest...');
-                    console.log('Manifest loaded:', manifest);
-                    if (manifest.data && manifest.data[season]) {
-                        console.log('Season data:', manifest.data[season]);
-                        console.log('Tournament order from manifest:', manifest.data[season].tournamentOrder);
-                    }
+                    debugLog('info', 'Manifest loaded successfully');
                 }
 
                 const tournaments = await discoverTournaments(season, manifest);
                 
                 if (tournaments.length === 0) {
-                    throw new Error(`No tournaments found for ${season}. Make sure manifest.json is configured or ${season}/LD/ exists with proper structure.`);
+                    throw new Error(`No tournaments found for ${season}.`);
                 }
                 
-                console.log(`Found ${tournaments.length} tournaments`);
                 updateLoading(`Loading ${tournaments.length} tournaments...`);
+                debugLog('info', `Found ${tournaments.length} tournaments`);
 
                 // Build list of ALL files to fetch
                 const allFilesToFetch = [];
                 
                 for (const tournament of tournaments) {
-                    // Entries file
                     if (tournament.entries && !tournament.entriesContent) {
                         allFilesToFetch.push({
                             type: 'entries',
@@ -1124,7 +1085,6 @@
                         });
                     }
                     
-                    // Prelim files
                     for (const filename of (tournament.prelims || [])) {
                         allFilesToFetch.push({
                             type: 'prelim',
@@ -1135,7 +1095,6 @@
                         });
                     }
                     
-                    // Elim files
                     for (const filename of (tournament.elims || [])) {
                         allFilesToFetch.push({
                             type: 'elim',
@@ -1147,7 +1106,7 @@
                     }
                 }
                 
-                // Fetch ALL files in parallel (maximum speed)
+                // Fetch ALL files in parallel
                 const fetchResults = await Promise.all(
                     allFilesToFetch.map(async (file) => {
                         const text = await fetchFile(file.path);
@@ -1155,10 +1114,7 @@
                     })
                 );
                 
-                // Process entries first - in the order specified by manifest
-                let totalEntries = 0;
-                
-                // HARDCODED tournament order from original processing log - THIS IS CRITICAL FOR MATCHING RESULTS
+                // Get tournament order
                 const CORRECT_TOURNAMENT_ORDER = [
                     "LaCosta", "BlueKey", "TOCDigital1", "StMarks", "Heritage Hall",
                     "CollegePrep", "DowlingCatholic", "Emory", "Alta", "Greenhill",
@@ -1168,27 +1124,19 @@
                     "Glenbrooks", "Damus", "Blake", "JackHowe", "NanoNagle"
                 ];
                 
-                // Get tournament order from manifest, or use hardcoded order, or use the order tournaments appear
                 let tournamentOrder;
                 if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder && manifest.data[season].tournamentOrder.length > 0) {
                     tournamentOrder = [...manifest.data[season].tournamentOrder];
-                    console.log('Using tournament order from manifest');
                 } else {
-                    // Use hardcoded order for 2025-2026
                     tournamentOrder = [...CORRECT_TOURNAMENT_ORDER];
-                    console.log('Using hardcoded tournament order');
                 }
                 
-                // Add any tournaments that exist but aren't in the order list
                 const orderSet = new Set(tournamentOrder);
                 for (const t of tournaments) {
                     if (!orderSet.has(t.name)) {
                         tournamentOrder.push(t.name);
                     }
                 }
-                
-                console.log('Tournament processing order:', tournamentOrder);
-                log(`Processing ${tournamentOrder.length} tournaments in order: ${tournamentOrder.slice(0, 5).join(', ')}...`);
                 
                 // Create a map for quick tournament lookup
                 const tournamentByName = {};
@@ -1204,14 +1152,14 @@
                     }
                 }
                 
-                // Process entries in the specified order (avoid duplicates)
+                // Process entries in order
+                let totalEntries = 0;
                 const processedEntries = new Set();
                 for (const tName of tournamentOrder) {
                     if (processedEntries.has(tName)) continue;
                     
                     const tournament = tournamentByName[tName];
                     
-                    // Prefer pre-loaded entriesContent, fall back to fetched
                     if (tournament && tournament.entriesContent) {
                         const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
                         totalEntries += mappings.length;
@@ -1224,15 +1172,11 @@
                     }
                 }
                 
-                console.log(`Total entries loaded: ${totalEntries}`);
-                
-                const mergeCount = buildMergeMappings();
-                if (mergeCount > 0) console.log(`Merged ${mergeCount} duplicate entries.`);
+                debugLog('info', `Total entries loaded: ${totalEntries}`);
 
                 // Group round files by tournament
                 const fileContents = fetchResults.filter(f => f.type === 'prelim' || f.type === 'elim');
                 
-                // Group by tournament
                 const tournamentFiles = {};
                 for (const file of fileContents) {
                     if (!tournamentFiles[file.tournament]) {
@@ -1247,10 +1191,13 @@
                     }
                 }
                 
-                // Process tournaments in the order specified by manifest for deterministic results
+                // Process tournaments in order
                 for (const tName of tournamentOrder) {
                     const tFiles = tournamentFiles[tName];
-                    if (!tFiles) continue; // Skip if no files for this tournament
+                    if (!tFiles) continue;
+                    
+                    debugLog('tournament', `Processing ${tName}`);
+                    
                     let bidLevel = determineBidLevel(tName) || 'quarters';
                     
                     const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
@@ -1279,11 +1226,9 @@
                             
                             if (!affWon && !negWon) continue;
 
-                            // Check for same-school matchup (walkover) in prelims too
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
-                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
@@ -1295,7 +1240,6 @@
                             const updatePrelimStats = (id, won, isWO) => {
                                 const comp = getCompetitor(id, tName);
                                 if (!comp.tournamentStats[tName]) comp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
-                                // Only count non-walkover rounds in stats display
                                 if (!isWO) {
                                     if (won) comp.tournamentStats[tName].pWins++;
                                     else comp.tournamentStats[tName].pLosses++;
@@ -1344,11 +1288,9 @@
 
                             if (!affWon && !negWon) continue;
 
-                            // Use tournament-specific lookup for proper competitor resolution
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
-                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
@@ -1383,7 +1325,6 @@
                             updateElimStats(neg, elimLevel, negWon);
                             
                             const recordPlacement = (id, level) => {
-                                // Get the actual competitor to use their canonical ID
                                 const comp = getCompetitor(id, tName);
                                 const canonId = comp.id;
                                 const levels = { 'octas': 1, 'quarters': 2, 'semis': 3, 'finals': 4, 'winner': 5 };
@@ -1420,14 +1361,23 @@
                     state.tournaments.push({ ...tournamentInfo, participants: participants.size });
                 }
 
-                log(`\n✓ Processed ${state.tournaments.length} tournaments successfully.`);
+                debugLog('info', `Completed loading ${state.tournaments.length} tournaments`);
+                debugLog('info', `${Object.keys(state.competitors).length} total competitors`);
+                debugLog('info', `${state.mergeEvents.length} merge events`);
+                
+                const unresolvedTotal = Object.values(state.unresolvedCodes).reduce((sum, set) => sum + set.size, 0);
+                if (unresolvedTotal > 0) {
+                    debugLog('warning', `${unresolvedTotal} unresolved codes - check Debug Panel`);
+                }
+
                 renderStats();
                 renderRankings();
+                renderDebugContent();
                 el.exportBtn.disabled = false;
                 el.h2hBtn.disabled = false;
 
             } catch (err) {
-                log(`Error: ${err.message}`);
+                debugLog('unresolved', `Error: ${err.message}`);
                 console.error(err);
                 el.emptyState.classList.remove('hidden');
                 el.emptyState.querySelector('p').textContent = `Failed to load data: ${err.message}`;
@@ -1437,14 +1387,20 @@
             }
         };
 
+        // ============================================
+        // RENDER FUNCTIONS
+        // ============================================
         const renderStats = () => {
-            el.competitorsStat.textContent = Object.keys(state.competitors).length;
+            const realCompetitors = Object.values(state.competitors).filter(c => !c.isUnresolved);
+            el.competitorsStat.textContent = realCompetitors.length;
             el.tournamentsStat.textContent = state.tournaments.length;
-            el.roundsStat.textContent = Object.values(state.competitors).reduce((s, c) => s + c.rounds, 0);
+            el.roundsStat.textContent = realCompetitors.reduce((s, c) => s + c.rounds, 0);
         };
 
         const renderRankings = (searchQuery = '') => {
-            const allComps = Object.values(state.competitors).sort((a, b) => b.rating - a.rating);
+            const allComps = Object.values(state.competitors)
+                .filter(comp => !comp.isUnresolved || searchQuery.toLowerCase().includes('unresolved'))
+                .sort((a, b) => b.rating - a.rating);
             
             let comps;
             let isSearching = searchQuery.trim().length > 0;
@@ -1452,27 +1408,16 @@
             if (isSearching) {
                 const query = searchQuery.toLowerCase().trim();
                 comps = allComps.filter(comp => {
-                    // Search by full name
-                    const fullName = comp.fullName || lookupFullName(comp.id) || '';
-                    if (fullName.toLowerCase().includes(query)) return true;
-                    
-                    // Search by code/id
+                    if (comp.fullName && comp.fullName.toLowerCase().includes(query)) return true;
                     if (comp.id.toLowerCase().includes(query)) return true;
-                    
-                    // Search by school
-                    if (comp.school.toLowerCase().includes(query)) return true;
-                    
-                    // Search by any of their codes
+                    if (comp.school && comp.school.toLowerCase().includes(query)) return true;
                     if (comp.allCodes) {
                         for (const code of comp.allCodes) {
                             if (code.toLowerCase().includes(query)) return true;
                         }
                     }
-                    
                     return false;
                 });
-                
-                // Update title
                 el.rankingsTitle.textContent = `Search Results (${comps.length} found)`;
             } else {
                 comps = allComps.slice(0, 50);
@@ -1490,33 +1435,27 @@
             el.rankingsContainer.innerHTML = '';
             
             comps.forEach((comp, index) => {
-                // Get actual rank among ALL competitors
                 const actualRank = allComps.findIndex(c => c.id === comp.id) + 1;
+                let displayName = comp.fullName || comp.id;
                 
-                let displayName = comp.fullName || lookupFullName(comp.id);
-                if (!displayName && comp.allCodes) {
-                    for (const code of comp.allCodes) {
-                        displayName = lookupFullName(code);
-                        if (displayName) break;
-                    }
+                if (comp.isUnresolved) {
+                    displayName = `⚠️ ${displayName.replace('UNRESOLVED::', '')}`;
                 }
-                displayName = displayName || comp.school;
 
-                const oppRatings = Array.from(comp.opponents).map(o => state.competitors[o]?.rating || BASE_RATING);
+                const oppRatings = Array.from(comp.opponents).map(o => 
+                    state.competitors[o] ? state.competitors[o].rating : BASE_RATING
+                );
                 const avgOpp = Math.round(oppRatings.reduce((a, b) => a + b, 0) / (oppRatings.length || 1));
                 const winRate = comp.rounds > 0 ? ((comp.wins / comp.rounds) * 100).toFixed(1) : 0;
                 const ratingGap = Math.round(comp.rating) - avgOpp;
                 
-                // Helper calculation for display
                 comp.affRounds = comp.affWins + comp.affLosses;
                 comp.negRounds = comp.negWins + comp.negLosses;
-
-                // Peak rating
                 const peakRating = Math.round(Math.max(...comp.ratingHistory));
                 
-                // Badge colors based on actual rank
                 let badgeClass = 'bg-white/10 text-white/60';
-                if (actualRank === 1) badgeClass = 'bg-yellow-500/20 text-yellow-400';
+                if (comp.isUnresolved) badgeClass = 'bg-red-500/20 text-red-400';
+                else if (actualRank === 1) badgeClass = 'bg-yellow-500/20 text-yellow-400';
                 else if (actualRank === 2) badgeClass = 'bg-gray-400/20 text-gray-300';
                 else if (actualRank === 3) badgeClass = 'bg-amber-600/20 text-amber-500';
 
@@ -1524,10 +1463,10 @@
                 row.className = 'competitor-row';
                 row.innerHTML = `
                     <div class="flex items-center gap-4 px-6 py-4 cursor-pointer select-none" onclick="toggleDropdown(${index})">
-                        <div class="rank-badge ${badgeClass}">${actualRank}</div>
+                        <div class="rank-badge ${badgeClass}">${comp.isUnresolved ? '?' : actualRank}</div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-white truncate">${displayName}</div>
-                            <div class="text-xs text-white/30 truncate">${comp.id}</div>
+                            <div class="text-xs text-white/30 truncate">${comp.school || 'Unknown School'} ${comp.isUnresolved ? `<span class="text-red-400">(Data Issue)</span>` : ''}</div>
                         </div>
                         <div class="text-right">
                             <div class="text-lg font-semibold text-white tabular-nums">${Math.round(comp.rating)}</div>
@@ -1567,9 +1506,15 @@
                             </div>
                             <div class="bg-white/5 rounded-lg p-3">
                                 <div class="text-[10px] text-white/30 uppercase tracking-wider">Neg Win Rate</div>
-                                <div class="text-sm font-medium text-white mt-1">${comp.negRounds > 0 ? Math.round((comp.negWins/comp.negRounds)*100) : 0}% <span class="text-xs text-white/30">(${comp.negWins}-${comp.negLosses})</span></div>
+                                <div class="text-sm font-medium text-white mt-1">${comp.negRounds > 0 ? Math.round((comp.negWins/comp.negLosses)*100) : 0}% <span class="text-xs text-white/30">(${comp.negWins}-${comp.negLosses})</span></div>
                             </div>
                         </div>
+                        ${comp.isUnresolved ? `
+                        <div class="mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                            <div class="text-xs text-red-400 font-medium mb-1">⚠️ Data Resolution Issue</div>
+                            <div class="text-xs text-white/50">This code was not found in entries.csv at: ${comp.unresolvedAtTournaments.join(', ')}</div>
+                        </div>
+                        ` : ''}
                         ${Object.keys(comp.tournamentStats || {}).length > 0 ? `
                         <div class="mt-4">
                             <div class="text-[10px] text-white/30 uppercase tracking-wider mb-2">Tournament Performance</div>
@@ -1588,9 +1533,9 @@
                             </div>
                         </div>
                         ` : ''}
-                        ${comp.allCodes && comp.allCodes.size > 1 ? `
+                        ${comp.allCodes && comp.allCodes.size > 0 ? `
                         <div class="mt-3 text-xs text-white/30">
-                            <span class="text-white/50">Also competed as:</span> ${Array.from(comp.allCodes).filter(c => c !== comp.id).join(', ')}
+                            <span class="text-white/50">Codes used:</span> ${Array.from(comp.allCodes).join(', ')}
                         </div>
                         ` : ''}
                     </div>
@@ -1606,15 +1551,341 @@
             chevron.classList.toggle('open');
         };
 
+        // ============================================
+        // DEBUG PANEL FUNCTIONS
+        // ============================================
+        const initDebugPanel = () => {
+            const toggle = document.getElementById('debugToggle');
+            const content = document.getElementById('debugContent');
+            const chevron = document.getElementById('debugChevron');
+            const tabs = document.querySelectorAll('.debug-tab');
+            const searchInput = document.getElementById('debugSearch');
+            
+            toggle.addEventListener('click', () => {
+                content.classList.toggle('open');
+                chevron.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : '';
+                if (content.classList.contains('open')) {
+                    renderDebugContent();
+                }
+            });
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.debug-tab-content').forEach(c => c.classList.add('hidden'));
+                    const tabId = `debugTab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`;
+                    document.getElementById(tabId).classList.remove('hidden');
+                    renderDebugContent(tab.dataset.tab);
+                });
+            });
+            
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const activeTab = document.querySelector('.debug-tab.active').dataset.tab;
+                    renderDebugContent(activeTab, searchInput.value);
+                }, 150);
+            });
+        };
+
+        const renderDebugContent = (tab = 'merges', searchQuery = '') => {
+            const query = searchQuery.toLowerCase().trim();
+            
+            document.getElementById('debugMergeCount').textContent = `${state.mergeEvents.length} merges`;
+            
+            const unresolvedTotal = Object.values(state.unresolvedCodes).reduce((sum, set) => sum + set.size, 0);
+            const unresolvedBadge = document.getElementById('debugUnresolvedCount');
+            if (unresolvedTotal > 0) {
+                unresolvedBadge.textContent = `${unresolvedTotal} unresolved`;
+                unresolvedBadge.classList.remove('hidden');
+            } else {
+                unresolvedBadge.classList.add('hidden');
+            }
+            
+            switch (tab) {
+                case 'merges': renderMergesTab(query); break;
+                case 'unresolved': renderUnresolvedTab(query); break;
+                case 'competitors': renderCompetitorsTab(query); break;
+                case 'timeline': renderTimelineTab(query); break;
+            }
+        };
+
+        const renderMergesTab = (query = '') => {
+            const container = document.getElementById('debugMergesList');
+            const emptyState = document.getElementById('debugMergesEmpty');
+            
+            let merges = [...state.mergeEvents].reverse();
+            
+            if (query) {
+                merges = merges.filter(m => 
+                    m.canonicalName.toLowerCase().includes(query) ||
+                    m.newCode.toLowerCase().includes(query) ||
+                    m.tournament.toLowerCase().includes(query) ||
+                    [...m.existingCodes].some(c => c.toLowerCase().includes(query))
+                );
+            }
+            
+            if (merges.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            const grouped = {};
+            merges.forEach(m => {
+                if (!grouped[m.canonicalName]) grouped[m.canonicalName] = [];
+                grouped[m.canonicalName].push(m);
+            });
+            
+            container.innerHTML = Object.entries(grouped).map(([name, events]) => {
+                const comp = state.competitors[normalizeName(name)];
+                const allCodes = comp ? [...comp.allCodes] : [];
+                const roundCount = comp ? comp.rounds : 0;
+                const hasWarning = events.length >= 3;
+                
+                return `
+                    <div class="merge-card ${hasWarning ? 'warning' : ''}">
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <div class="font-medium text-white">${name}</div>
+                                <div class="text-xs text-white/40">${roundCount} total rounds • ${allCodes.length} codes</div>
+                            </div>
+                            ${hasWarning ? `
+                                <div class="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded flex items-center gap-1">
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    Many merges
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="mb-2">
+                            <div class="text-[10px] text-white/30 uppercase tracking-wider mb-1">All Codes</div>
+                            <div class="flex flex-wrap gap-1">
+                                ${allCodes.map(code => `<span class="code-tag">${code}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="border-t border-white/5 pt-2 mt-2">
+                            <div class="text-[10px] text-white/30 uppercase tracking-wider mb-1">Merge History</div>
+                            <div class="space-y-1">
+                                ${events.map(e => `
+                                    <div class="flex items-center gap-2 text-xs flex-wrap">
+                                        <span class="text-white/30">@</span>
+                                        <span class="text-purple-400">${e.tournament}</span>
+                                        <span class="text-white/20">→</span>
+                                        <span class="code-tag new">${e.newCode}</span>
+                                        <span class="text-white/30 text-[10px]">merged with</span>
+                                        ${[...e.existingCodes].slice(0, 3).map(c => `<span class="code-tag existing">${c}</span>`).join('')}
+                                        ${e.existingCodes.length > 3 ? `<span class="text-white/30">+${e.existingCodes.length - 3}</span>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const renderUnresolvedTab = (query = '') => {
+            const container = document.getElementById('debugUnresolvedList');
+            const emptyState = document.getElementById('debugUnresolvedEmpty');
+            
+            const tournaments = Object.entries(state.unresolvedCodes)
+                .filter(([t, codes]) => codes.size > 0)
+                .filter(([t, codes]) => {
+                    if (!query) return true;
+                    if (t.toLowerCase().includes(query)) return true;
+                    return [...codes].some(c => c.toLowerCase().includes(query));
+                });
+            
+            if (tournaments.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            container.innerHTML = tournaments.map(([tournament, codes]) => {
+                const codeArray = [...codes];
+                return `
+                    <div class="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-4 h-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span class="font-medium text-red-400">${tournament}</span>
+                            <span class="text-xs text-red-400/60">(${codeArray.length} unresolved)</span>
+                        </div>
+                        <div class="space-y-2">
+                            ${codeArray.map(code => `
+                                <div class="flex items-center justify-between bg-white/5 rounded px-3 py-2">
+                                    <code class="text-sm text-white/80">${code}</code>
+                                    <button class="text-xs text-blue-400 hover:text-blue-300 transition-colors" onclick="searchEntriesFor('${tournament}', '${code.replace(/'/g, "\\'")}')">
+                                        Check entries.csv →
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="mt-3 text-xs text-white/30">
+                            <strong>Fix:</strong> Check the entries.csv file for this tournament
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const renderCompetitorsTab = (query = '') => {
+            const container = document.getElementById('debugCompetitorsList');
+            
+            let competitors = Object.values(state.competitors)
+                .filter(c => !c.isUnresolved)
+                .sort((a, b) => b.rounds - a.rounds);
+            
+            if (query) {
+                competitors = competitors.filter(c => 
+                    (c.fullName && c.fullName.toLowerCase().includes(query)) ||
+                    c.id.toLowerCase().includes(query) ||
+                    (c.school && c.school.toLowerCase().includes(query)) ||
+                    [...c.allCodes].some(code => code.toLowerCase().includes(query))
+                );
+            }
+            
+            const limited = competitors.slice(0, 100);
+            const hasMore = competitors.length > 100;
+            
+            container.innerHTML = `
+                <div class="text-xs text-white/30 mb-3">
+                    Showing ${limited.length}${hasMore ? ` of ${competitors.length}` : ''} competitors (sorted by rounds)
+                </div>
+                <div class="space-y-1">
+                    ${limited.map(comp => {
+                        const codeCount = comp.allCodes.size;
+                        const isSuspicious = codeCount >= 4 || comp.rounds >= 30;
+                        return `
+                            <div class="flex items-center gap-3 bg-white/5 hover:bg-white/10 rounded px-3 py-2 transition-colors ${isSuspicious ? 'border border-yellow-500/30' : ''}">
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium text-white text-sm truncate">${comp.fullName || comp.id}</div>
+                                    <div class="text-xs text-white/30 truncate">${comp.school || 'Unknown'}</div>
+                                </div>
+                                <div class="text-xs text-white/40">${comp.rounds} rounds</div>
+                                <div class="text-xs ${codeCount >= 4 ? 'text-yellow-400' : 'text-white/40'}">${codeCount} codes</div>
+                                <button class="text-xs text-blue-400 hover:text-blue-300 transition-colors whitespace-nowrap" onclick="showCompetitorDetail('${comp.id.replace(/'/g, "\\'")}')">Details</button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                ${hasMore ? `<div class="text-center text-white/30 text-xs mt-4">Use search to filter results</div>` : ''}
+            `;
+        };
+
+        const renderTimelineTab = (query = '') => {
+            const container = document.getElementById('debugTimelineList');
+            const emptyState = document.getElementById('debugTimelineEmpty');
+            
+            let entries = [...state.debugLog];
+            
+            if (query) {
+                entries = entries.filter(e => 
+                    e.message.toLowerCase().includes(query) ||
+                    e.type.toLowerCase().includes(query) ||
+                    (e.data.tournament && e.data.tournament.toLowerCase().includes(query))
+                );
+            }
+            
+            if (entries.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            container.innerHTML = entries.map(e => {
+                const colors = {
+                    'new': 'text-green-400',
+                    'merge': 'text-blue-400',
+                    'unresolved': 'text-red-400',
+                    'tournament': 'text-purple-400',
+                    'info': 'text-white/40',
+                    'warning': 'text-yellow-400'
+                };
+                return `
+                    <div class="timeline-entry ${e.type}">
+                        <span class="${colors[e.type] || 'text-white/60'}">[${e.type.toUpperCase()}]</span>
+                        <span class="text-white/80 ml-2">${e.message}</span>
+                        ${e.data.tournament ? `<span class="text-purple-400/60 ml-2">@ ${e.data.tournament}</span>` : ''}
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.showCompetitorDetail = (id) => {
+            const comp = state.competitors[id];
+            if (!comp) { alert('Competitor not found'); return; }
+            
+            const codes = [...comp.allCodes].join('\n  - ');
+            const tournaments = Object.keys(comp.tournamentStats || {}).join('\n  - ');
+            
+            alert(`
+COMPETITOR DETAIL
+=================
+Name: ${comp.fullName || 'Unknown'}
+ID: ${comp.id}
+School: ${comp.school || 'Unknown'}
+
+STATS
+-----
+Rating: ${Math.round(comp.rating)}
+Record: ${comp.wins}-${comp.losses}
+Rounds: ${comp.rounds}
+Tournaments: ${comp.tournaments}
+
+CODES USED
+----------
+  - ${codes}
+
+TOURNAMENTS
+-----------
+  - ${tournaments || 'None recorded'}
+            `.trim());
+        };
+
+        window.searchEntriesFor = (tournament, code) => {
+            const entries = state.tournamentEntriesMap[tournament];
+            if (!entries) { alert(`No entries loaded for ${tournament}`); return; }
+            
+            console.log(`\n=== Searching ${tournament} entries for "${code}" ===`);
+            
+            const school = extractSchoolFromCode(code);
+            let found = false;
+            
+            Object.entries(entries).forEach(([key, entry]) => {
+                if (key.includes(school.toLowerCase())) {
+                    console.log(`  "${key}" → "${entry.name}" (${entry.originalCode})`);
+                    found = true;
+                }
+            });
+            
+            if (!found) console.log(`  No entries found for school "${school}"`);
+            alert(`Check console for entries from ${tournament} matching "${school}"`);
+        };
+
+        // ============================================
+        // EXPORT
+        // ============================================
         const exportRankings = () => {
-            const comps = Object.values(state.competitors).sort((a, b) => b.rating - a.rating);
+            const comps = Object.values(state.competitors)
+                .filter(c => !c.isUnresolved)
+                .sort((a, b) => b.rating - a.rating);
+            
             const csvContent = [
                 'Rank,Competitor,FullName,School,AllCodes,Rating,Wins,Losses,Tournaments,Rounds,AvgOppRating',
                 ...comps.map((c, i) => {
                     const oppRatings = Array.from(c.opponents).map(o => state.competitors[o]?.rating || BASE_RATING);
                     const avgOpp = Math.round(oppRatings.reduce((a, b) => a + b, 0) / (oppRatings.length || 1));
                     const allCodes = c.allCodes ? Array.from(c.allCodes).join('; ') : c.id;
-                    const fullName = c.fullName || lookupFullName(c.id) || '';
+                    const fullName = c.fullName || '';
                     return `${i + 1},"${c.id}","${fullName}","${c.school}","${allCodes}",${Math.round(c.rating)},${c.wins},${c.losses},${c.tournaments},${c.rounds},${avgOpp}`;
                 })
             ].join('\n');
@@ -1627,125 +1898,53 @@
             a.click();
         };
 
-        // Event Listeners
-        el.exportBtn.addEventListener('click', exportRankings);
-        
-        // Season select change handler
-        el.seasonSelect.addEventListener('change', (e) => {
-            if (!state.processing) {
-                loadSeasonData(e.target.value);
-            }
-        });
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            populateSeasonDropdown();
-        });
-        
-        // Also try to load immediately if DOM is already ready
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            populateSeasonDropdown();
-        }
-        
-        // Search functionality
-        let searchTimeout;
-        el.searchInput.addEventListener('input', (e) => {
-            const query = e.target.value;
-            
-            // Show/hide clear button
-            if (query.length > 0) {
-                el.clearSearch.classList.remove('hidden');
-            } else {
-                el.clearSearch.classList.add('hidden');
-            }
-            
-            // Debounce search
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (Object.keys(state.competitors).length > 0) {
-                    renderRankings(query);
-                }
-            }, 150);
-        });
-        
-        el.clearSearch.addEventListener('click', () => {
-            el.searchInput.value = '';
-            el.clearSearch.classList.add('hidden');
-            if (Object.keys(state.competitors).length > 0) {
-                renderRankings();
-            }
-        });
-        
-
-        
-        // Head to Head functionality
+        // ============================================
+        // HEAD TO HEAD (simplified)
+        // ============================================
         const openH2HModal = () => {
             el.h2hModal.classList.remove('hidden');
             el.h2hModal.classList.add('flex');
             state.h2hSelection = { aff: null, neg: null };
-            el.h2hAffSearch.value = '';
-            el.h2hNegSearch.value = '';
-            el.h2hAffSelected.classList.add('hidden');
-            el.h2hNegSelected.classList.add('hidden');
-            el.h2hPrediction.classList.add('hidden');
-            el.h2hHistory.classList.add('hidden');
         };
         
         const closeH2HModal = () => {
             el.h2hModal.classList.add('hidden');
             el.h2hModal.classList.remove('flex');
-            el.h2hAffDropdown.classList.add('hidden');
-            el.h2hNegDropdown.classList.add('hidden');
         };
-        
+
         const searchCompetitors = (query) => {
             if (!query || query.length < 2) return [];
             const q = query.toLowerCase();
             return Object.values(state.competitors)
+                .filter(c => !c.isUnresolved)
                 .filter(comp => {
-                    const fullName = comp.fullName || lookupFullName(comp.id) || '';
-                    if (fullName.toLowerCase().includes(q)) return true;
+                    if (comp.fullName && comp.fullName.toLowerCase().includes(q)) return true;
                     if (comp.id.toLowerCase().includes(q)) return true;
-                    if (comp.school.toLowerCase().includes(q)) return true;
                     return false;
                 })
                 .sort((a, b) => b.rating - a.rating)
                 .slice(0, 10);
         };
-        
+
         const renderH2HDropdown = (dropdown, results, side) => {
-            if (results.length === 0) {
-                dropdown.classList.add('hidden');
-                return;
-            }
-            
+            if (results.length === 0) { dropdown.classList.add('hidden'); return; }
             dropdown.innerHTML = results.map(comp => {
-                const fullName = comp.fullName || lookupFullName(comp.id) || comp.id;
-                return `
-                    <div class="px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors" data-id="${comp.id}" data-side="${side}">
-                        <div class="font-medium text-white text-sm">${fullName}</div>
-                        <div class="text-xs text-white/40">${comp.id} • ${Math.round(comp.rating)}</div>
-                    </div>
-                `;
+                const fullName = comp.fullName || comp.id;
+                return `<div class="px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors" data-id="${comp.id}" data-side="${side}">
+                    <div class="font-medium text-white text-sm">${fullName}</div>
+                    <div class="text-xs text-white/40">${Math.round(comp.rating)}</div>
+                </div>`;
             }).join('');
-            
             dropdown.classList.remove('hidden');
-            
-            // Add click handlers
             dropdown.querySelectorAll('[data-id]').forEach(item => {
-                item.addEventListener('click', () => {
-                    const compId = item.dataset.id;
-                    const itemSide = item.dataset.side;
-                    selectH2HCompetitor(compId, itemSide);
-                });
+                item.addEventListener('click', () => selectH2HCompetitor(item.dataset.id, item.dataset.side));
             });
         };
-        
+
         const selectH2HCompetitor = (compId, side) => {
             const comp = state.competitors[compId];
             if (!comp) return;
-            
-            const fullName = comp.fullName || lookupFullName(comp.id) || comp.id;
+            const fullName = comp.fullName || comp.id;
             state.h2hSelection[side] = comp;
             
             if (side === 'aff') {
@@ -1768,245 +1967,93 @@
             
             updateH2HPrediction();
         };
-        
+
         const updateH2HPrediction = () => {
             const aff = state.h2hSelection.aff;
             const neg = state.h2hSelection.neg;
+            if (!aff || !neg) return;
             
-            if (!aff || !neg) {
-                el.h2hPrediction.classList.add('hidden');
-                el.h2hHistory.classList.add('hidden');
-                return;
-            }
-            
-            // ========== SOPHISTICATED H2H PREDICTION ALGORITHM ==========
-            
-            // 1. BASE ELO PROBABILITY (40% weight)
-            const affRating = aff.rating;
-            const negRating = neg.rating;
-            const eloProb = expectedScore(affRating, negRating);
-            
-            // 2. SIDE-SPECIFIC PERFORMANCE (20% weight)
-            // How well does aff perform ON AFF, and how well does neg perform ON NEG?
-            const affOnAffWinRate = aff.affRounds >= 3 ? aff.affWins / aff.affRounds : 0.5;
-            const negOnNegWinRate = neg.negRounds >= 3 ? neg.negWins / neg.negRounds : 0.5;
-            // Normalize to probability advantage
-            const sideProb = 0.5 + ((affOnAffWinRate - 0.5) * 0.5) - ((negOnNegWinRate - 0.5) * 0.5);
-            
-            // 3. RECENT FORM / WIN TRENDS (15% weight)
-            // Look at last 10 rounds from rating history to determine momentum
-            const getRecentTrend = (comp) => {
-                const history = comp.ratingHistory || [BASE_RATING];
-                if (history.length < 3) return 0;
-                const recent = history.slice(-10);
-                const firstHalf = recent.slice(0, Math.floor(recent.length / 2));
-                const secondHalf = recent.slice(Math.floor(recent.length / 2));
-                const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-                const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-                // Return momentum as a value between -1 (declining) and 1 (improving)
-                return Math.max(-1, Math.min(1, (secondAvg - firstAvg) / 100));
-            };
-            const affTrend = getRecentTrend(aff);
-            const negTrend = getRecentTrend(neg);
-            const trendProb = 0.5 + ((affTrend - negTrend) * 0.25);
-            
-            // 4. HEAD-TO-HEAD HISTORY (25% weight if they've faced each other)
-            const matchupKey = [aff.id, neg.id].sort().join('::');
-            const history = state.matchupHistory[matchupKey] || [];
-            let h2hProb = 0.5;
-            let h2hWeight = 0;
-            
-            if (history.length > 0) {
-                // Calculate h2h record with recency weighting
-                let affH2HWins = 0;
-                let totalH2HWeight = 0;
-                history.forEach((match, idx) => {
-                    // More recent matches weighted higher
-                    const recencyWeight = 1 + (idx / history.length);
-                    const affWon = match.winnerId === aff.id;
-                    if (affWon) affH2HWins += recencyWeight;
-                    totalH2HWeight += recencyWeight;
-                });
-                h2hProb = affH2HWins / totalH2HWeight;
-                // H2H weight scales with number of matches (max 25% at 3+ matches)
-                h2hWeight = Math.min(0.25, history.length * 0.08);
-            }
-            
-            // 5. EXPERIENCE FACTOR (part of remaining weight)
-            const affExperience = Math.min(1, aff.rounds / 50);
-            const negExperience = Math.min(1, neg.rounds / 50);
-            const expDiff = (affExperience - negExperience) * 0.1;
-            
-            // 6. QUALITY OF COMPETITION FACED
-            const getAvgOppRating = (comp) => {
-                const oppRatings = Array.from(comp.opponents).map(o => 
-                    state.competitors[o]?.rating || BASE_RATING
-                );
-                return oppRatings.length > 0 
-                    ? oppRatings.reduce((a, b) => a + b, 0) / oppRatings.length 
-                    : BASE_RATING;
-            };
-            const affAvgOpp = getAvgOppRating(aff);
-            const negAvgOpp = getAvgOppRating(neg);
-            // If aff has faced tougher competition, slight bonus
-            const scheduleStrengthAdj = (affAvgOpp - negAvgOpp) / 1000;
-            
-            // ========== COMBINE ALL FACTORS ==========
-            // Weights: Elo 40%, Side 20%, Trend 15%, H2H variable (up to 25%), rest for adjustments
-            const baseWeight = 1 - h2hWeight;
-            let affWinProb = (
-                (eloProb * 0.40 * baseWeight) +
-                (sideProb * 0.20 * baseWeight) +
-                (trendProb * 0.15 * baseWeight) +
-                (h2hProb * h2hWeight) +
-                (0.5 * 0.25 * baseWeight) + // Base 50% for remaining weight
-                (expDiff * baseWeight) +
-                (scheduleStrengthAdj * baseWeight)
-            );
-            
-            // Normalize to ensure it's a valid probability
-            affWinProb = Math.max(0.02, Math.min(0.98, affWinProb));
-            const negWinProb = 1 - affWinProb;
-            
-            // ========== UPDATE UI ==========
+            const eloProb = expectedScore(aff.rating, neg.rating);
             el.h2hPrediction.classList.remove('hidden');
-            el.h2hAffWinProb.textContent = `${Math.round(affWinProb * 100)}%`;
-            el.h2hNegWinProb.textContent = `${Math.round(negWinProb * 100)}%`;
-            el.h2hProbBarAff.style.width = `${affWinProb * 100}%`;
-            el.h2hProbBarNeg.style.width = `${negWinProb * 100}%`;
+            el.h2hAffWinProb.textContent = `${Math.round(eloProb * 100)}%`;
+            el.h2hNegWinProb.textContent = `${Math.round((1-eloProb) * 100)}%`;
+            el.h2hProbBarAff.style.width = `${eloProb * 100}%`;
+            el.h2hProbBarNeg.style.width = `${(1-eloProb) * 100}%`;
             
-            // Generate prediction text with reasoning
-            const affName = aff.fullName || lookupFullName(aff.id) || aff.id;
-            const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
-            const ratingDiff = Math.abs(affRating - negRating);
-            
-            let predictionText = '';
-            if (Math.abs(affWinProb - 0.5) < 0.05) {
-                predictionText = "This is essentially a toss-up match";
-            } else {
-                const favored = affWinProb > 0.5 ? affName : negName;
-                const favoredSide = affWinProb > 0.5 ? 'Aff' : 'Neg';
-                const prob = Math.max(affWinProb, negWinProb);
-                const confidence = prob > 0.75 ? "heavily" : prob > 0.65 ? "solidly" : prob > 0.55 ? "moderately" : "slightly";
-                predictionText = `${favored} is ${confidence} favored on ${favoredSide}`;
-                
-                // Add reasoning
-                const reasons = [];
-                if (ratingDiff > 100) reasons.push(`${ratingDiff} Elo gap`);
-                if (history.length > 0) {
-                    const affWins = history.filter(m => m.winnerId === aff.id).length;
-                    const negWins = history.length - affWins;
-                    reasons.push(`H2H: ${affWins}-${negWins}`);
-                }
-                if (Math.abs(affTrend - negTrend) > 0.3) {
-                    const trending = affTrend > negTrend ? affName.split(' ')[0] : negName.split(' ')[0];
-                    reasons.push(`${trending} trending up`);
-                }
-                if (reasons.length > 0) {
-                    predictionText += ` (${reasons.join(', ')})`;
-                }
-            }
-            el.h2hPredictionText.textContent = predictionText;
-            
-            // Show matchup history
-            renderMatchupHistory(aff, neg);
-        };
-        
-        const renderMatchupHistory = (aff, neg) => {
-            const matchupKey = [aff.id, neg.id].sort().join('::');
-            const history = state.matchupHistory[matchupKey] || [];
+            const favored = eloProb > 0.5 ? (aff.fullName || aff.id) : (neg.fullName || neg.id);
+            el.h2hPredictionText.textContent = `${favored} is favored based on ELO ratings`;
             
             el.h2hHistory.classList.remove('hidden');
+            const matchupKey = [aff.id, neg.id].sort().join('::');
+            const history = state.matchupHistory[matchupKey] || [];
             
             if (history.length === 0) {
                 el.h2hHistoryContent.classList.add('hidden');
                 el.h2hNoHistory.classList.remove('hidden');
-                return;
-            }
-            
-            el.h2hNoHistory.classList.add('hidden');
-            el.h2hHistoryContent.classList.remove('hidden');
-            
-            const affName = aff.fullName || lookupFullName(aff.id) || aff.id;
-            const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
-            
-            el.h2hHistoryContent.innerHTML = history.map(match => {
-                const affWon = match.winnerId === aff.id && match.winnerSide === 'aff' || 
-                               match.winnerId === aff.id && match.affId === aff.id;
-                const negWon = match.winnerId === neg.id;
-                
-                // Determine who was aff/neg in this specific match
-                const wasAffOnAff = match.affId === aff.id;
-                const winnerName = match.winnerId === aff.id ? affName : negName;
-                const winnerSide = match.winnerSide === 'aff' ? 'Aff' : 'Neg';
-                
-                return `
-                    <div class="bg-white/5 rounded-lg p-3 flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="text-sm font-medium text-white">${match.tournament}</div>
-                            <div class="text-xs text-white/40">${match.round}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-sm">
-                                <span class="${wasAffOnAff ? 'text-blue-400' : 'text-red-400'}">${affName.split(' ')[0]}</span>
-                                <span class="text-white/30 mx-1">vs</span>
-                                <span class="${wasAffOnAff ? 'text-red-400' : 'text-blue-400'}">${negName.split(' ')[0]}</span>
-                            </div>
-                            <div class="text-xs ${match.winnerId === aff.id ? 'text-blue-400' : 'text-red-400'} font-medium">
-                                ${winnerName.split(' ')[0]} won (${winnerSide})
-                            </div>
-                        </div>
+            } else {
+                el.h2hNoHistory.classList.add('hidden');
+                el.h2hHistoryContent.classList.remove('hidden');
+                el.h2hHistoryContent.innerHTML = history.map(m => `
+                    <div class="bg-white/5 rounded-lg p-3">
+                        <div class="text-sm font-medium text-white">${m.tournament} - ${m.round}</div>
+                        <div class="text-xs text-white/40">Winner: ${m.winnerId === aff.id ? (aff.fullName || aff.id) : (neg.fullName || neg.id)} (${m.winnerSide})</div>
                     </div>
-                `;
-            }).join('');
+                `).join('');
+            }
         };
-        
-        // H2H Event Listeners
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        el.exportBtn.addEventListener('click', exportRankings);
+        el.seasonSelect.addEventListener('change', (e) => { if (!state.processing) loadSeasonData(e.target.value); });
         el.h2hBtn.addEventListener('click', openH2HModal);
         el.h2hClose.addEventListener('click', closeH2HModal);
-        el.h2hModal.addEventListener('click', (e) => {
-            if (e.target === el.h2hModal) closeH2HModal();
+        el.h2hModal.addEventListener('click', (e) => { if (e.target === el.h2hModal) closeH2HModal(); });
+
+        let searchTimeout;
+        el.searchInput.addEventListener('input', (e) => {
+            const query = e.target.value;
+            el.clearSearch.classList.toggle('hidden', query.length === 0);
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (Object.keys(state.competitors).length > 0) renderRankings(query);
+            }, 150);
         });
         
+        el.clearSearch.addEventListener('click', () => {
+            el.searchInput.value = '';
+            el.clearSearch.classList.add('hidden');
+            if (Object.keys(state.competitors).length > 0) renderRankings();
+        });
+
         let h2hAffTimeout, h2hNegTimeout;
-        
         el.h2hAffSearch.addEventListener('input', (e) => {
             clearTimeout(h2hAffTimeout);
-            h2hAffTimeout = setTimeout(() => {
-                const results = searchCompetitors(e.target.value);
-                renderH2HDropdown(el.h2hAffDropdown, results, 'aff');
-            }, 150);
+            h2hAffTimeout = setTimeout(() => renderH2HDropdown(el.h2hAffDropdown, searchCompetitors(e.target.value), 'aff'), 150);
         });
-        
-        el.h2hAffSearch.addEventListener('focus', () => {
-            if (el.h2hAffSearch.value.length >= 2) {
-                const results = searchCompetitors(el.h2hAffSearch.value);
-                renderH2HDropdown(el.h2hAffDropdown, results, 'aff');
-            }
-        });
-        
         el.h2hNegSearch.addEventListener('input', (e) => {
             clearTimeout(h2hNegTimeout);
-            h2hNegTimeout = setTimeout(() => {
-                const results = searchCompetitors(e.target.value);
-                renderH2HDropdown(el.h2hNegDropdown, results, 'neg');
-            }, 150);
+            h2hNegTimeout = setTimeout(() => renderH2HDropdown(el.h2hNegDropdown, searchCompetitors(e.target.value), 'neg'), 150);
         });
-        
-        el.h2hNegSearch.addEventListener('focus', () => {
-            if (el.h2hNegSearch.value.length >= 2) {
-                const results = searchCompetitors(el.h2hNegSearch.value);
-                renderH2HDropdown(el.h2hNegDropdown, results, 'neg');
-            }
-        });
-        
-        // Close dropdowns when clicking outside
+
         document.addEventListener('click', (e) => {
-            if (!el.h2hAffSearch.contains(e.target) && !el.h2hAffDropdown.contains(e.target)) {
-                el.h2hAffDropdown.classList.add('hidden');
-            }
-            if (!el.h2hNegSearch.contains(e.target) && !el.h2hNegDropdown.contains(e.target)) {
-                el.h2hNegDropdown.classList.add('hidden');
-            }
+            if (!el.h2hAffSearch.contains(e.target) && !el.h2hAffDropdown.contains(e.target)) el.h2hAffDropdown.classList.add('hidden');
+            if (!el.h2hNegSearch.contains(e.target) && !el.h2hNegDropdown.contains(e.target)) el.h2hNegDropdown.classList.add('hidden');
         });
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initDebugPanel();
+            populateSeasonDropdown();
+        });
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            initDebugPanel();
+            populateSeasonDropdown();
+        }
     </script>
+</body>
+</html>
