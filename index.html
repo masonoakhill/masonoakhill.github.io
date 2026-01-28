@@ -89,7 +89,7 @@
         <header class="mb-12">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings v2</h1>
+                    <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings v2.1</h1>
                     <p class="text-sm text-white/40 mt-1">TOC Circuit • 
                         <select id="seasonSelect" class="bg-transparent text-white/60 outline-none border-b border-white/20 hover:border-white/40 focus:border-white/60 transition-colors cursor-pointer">
                             <option value="2025-2026" class="bg-[#0a0a0f]">2025-2026</option>
@@ -324,10 +324,6 @@
             tournamentsStat: document.getElementById('stat-tournaments'),
             roundsStat: document.getElementById('stat-rounds'),
             exportBtn: document.getElementById('exportBtn'),
-            diversityPenalty: document.getElementById('diversityPenalty'),
-            walkoversEnabled: document.getElementById('walkoversEnabled'),
-            logSection: document.getElementById('logSection'),
-            logContent: document.getElementById('logContent'),
             emptyState: document.getElementById('emptyState'),
             rankingsContainer: document.getElementById('rankingsContainer'),
             searchInput: document.getElementById('searchInput'),
@@ -1062,7 +1058,15 @@
                 // Load manifest for fast loading
                 const manifest = await loadManifest();
                 
-                updateLoading('Discovering tournaments...');
+                if (!manifest) {
+                    updateLoading('No manifest found. Scanning files (Slow)...');
+                    console.warn('Manifest.json not found or invalid. Run "node generate-manifest.js" locally to speed up loading.');
+                    // Add a small delay so the user sees the message
+                    await new Promise(r => setTimeout(r, 1000));
+                } else {
+                    updateLoading('Loading from manifest...');
+                }
+
                 const tournaments = await discoverTournaments(season, manifest);
                 
                 if (tournaments.length === 0) {
@@ -1116,21 +1120,28 @@
                     })
                 );
                 
-                // Process entries first
+                // Process entries first - in alphabetical order for consistency
                 let totalEntries = 0;
-                for (const result of fetchResults) {
-                    if (result.type === 'entries' && result.text) {
-                        const mappings = parseEntriesFile(result.text, result.tournament);
-                        totalEntries += mappings.length;
-                    }
-                }
                 
-                // Also process pre-loaded entries content
-                for (const tournament of tournaments) {
+                // Sort tournaments alphabetically before processing entries
+                const sortedTournamentsForEntries = [...tournaments].sort((a, b) => a.name.localeCompare(b.name));
+                
+                // First process pre-loaded entries content (in sorted order)
+                for (const tournament of sortedTournamentsForEntries) {
                     if (tournament.entriesContent) {
                         const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
                         totalEntries += mappings.length;
                     }
+                }
+                
+                // Then process fetched entries (in sorted order)
+                const sortedEntryResults = fetchResults
+                    .filter(r => r.type === 'entries' && r.text)
+                    .sort((a, b) => a.tournament.localeCompare(b.tournament));
+                    
+                for (const result of sortedEntryResults) {
+                    const mappings = parseEntriesFile(result.text, result.tournament);
+                    totalEntries += mappings.length;
                 }
                 
                 console.log(`Total entries loaded: ${totalEntries}`);
@@ -1156,9 +1167,13 @@
                     }
                 }
                 
-                // Process tournaments
-                for (const [tName, tFiles] of Object.entries(tournamentFiles)) {
-                    const tournament = tFiles.data;
+                // Process tournaments in alphabetical order for deterministic results
+                // Sort tournaments by name to ensure consistent processing order
+                const sortedTournaments = [...tournaments].sort((a, b) => a.name.localeCompare(b.name));
+                for (const tournament of sortedTournaments) {
+                    const tName = tournament.name;
+                    const tFiles = tournamentFiles[tName];
+                    if (!tFiles) continue; // Skip if no files for this tournament
                     let bidLevel = determineBidLevel(tName) || 'quarters';
                     
                     const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
@@ -1176,8 +1191,8 @@
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
                             
-                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
-                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
+                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || row['aff speaks'] || 28);
+                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || row['neg speaks'] || 28);
 
                             if (!aff || !neg) continue;
                             if (aff.toLowerCase().includes('bye') || neg.toLowerCase().includes('bye')) continue;
@@ -1242,8 +1257,8 @@
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
                             
-                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
-                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
+                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || row['aff speaks'] || 28);
+                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || row['neg speaks'] || 28);
 
                             if (!aff || !neg) continue;
 
