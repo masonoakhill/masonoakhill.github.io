@@ -374,13 +374,8 @@
         };
 
         const getSpeakerModifier = (speaks, isWin) => {
-            if (isWin) {
-                if (speaks >= 29) return 1.1;
-                return 1.0;
-            } else {
-                if (speaks >= 28.5) return 0.9;
-                return 1.0;
-            }
+            if (isWin) return speaks >= 29 ? 1.1 : 1.0;
+            return speaks >= 28.5 ? 0.9 : 1.0;
         };
 
         const normalizeName = (name) => {
@@ -689,10 +684,6 @@
                         const qualityFactor = (avgOppRating - 1500) / 500;
                         const winRateFactor = (winRate - 0.70) * 2;
                         ratingChange *= 1 + Math.min(0.25, qualityFactor * 0.15 + winRateFactor * 0.15);
-                    } else if (winRate >= 0.65 && avgOppRating >= BASE_RATING) {
-                        const qualityFactor = (avgOppRating - BASE_RATING) / 200;
-                        const consistencyBonus = 1 + Math.min(0.15, qualityFactor * 0.08 + (winRate - 0.65) * 0.3);
-                        ratingChange *= consistencyBonus;
                     }
                 }
             }
@@ -1074,6 +1065,11 @@
                     await new Promise(r => setTimeout(r, 1000));
                 } else {
                     updateLoading('Loading from manifest...');
+                    console.log('Manifest loaded:', manifest);
+                    if (manifest.data && manifest.data[season]) {
+                        console.log('Season data:', manifest.data[season]);
+                        console.log('Tournament order from manifest:', manifest.data[season].tournamentOrder);
+                    }
                 }
 
                 const tournaments = await discoverTournaments(season, manifest);
@@ -1129,20 +1125,72 @@
                     })
                 );
                 
-                // Process entries first
+                // Process entries first - in the order specified by manifest
                 let totalEntries = 0;
-                for (const result of fetchResults) {
-                    if (result.type === 'entries' && result.text) {
-                        const mappings = parseEntriesFile(result.text, result.tournament);
-                        totalEntries += mappings.length;
+                
+                // HARDCODED tournament order from original processing log - THIS IS CRITICAL FOR MATCHING RESULTS
+                const CORRECT_TOURNAMENT_ORDER = [
+                    "LaCosta", "BlueKey", "TOCDigital1", "StMarks", "Heritage Hall",
+                    "CollegePrep", "DowlingCatholic", "Emory", "Alta", "Greenhill",
+                    "Badgerland", "LonghornClassic", "Peninsula", "HarvardWestlake",
+                    "Princeton", "AppleValley", "Meadows", "NSDSO_Online", "Loyola",
+                    "Grapevine", "IsidoreNewman", "MidAmerica", "Yale", "Bronx",
+                    "Glenbrooks", "Damus", "Blake", "JackHowe", "NanoNagle"
+                ];
+                
+                // Get tournament order from manifest, or use hardcoded order, or use the order tournaments appear
+                let tournamentOrder;
+                if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder && manifest.data[season].tournamentOrder.length > 0) {
+                    tournamentOrder = [...manifest.data[season].tournamentOrder];
+                    console.log('Using tournament order from manifest');
+                } else {
+                    // Use hardcoded order for 2025-2026
+                    tournamentOrder = [...CORRECT_TOURNAMENT_ORDER];
+                    console.log('Using hardcoded tournament order');
+                }
+                
+                // Add any tournaments that exist but aren't in the order list
+                const orderSet = new Set(tournamentOrder);
+                for (const t of tournaments) {
+                    if (!orderSet.has(t.name)) {
+                        tournamentOrder.push(t.name);
                     }
                 }
                 
-                // Also process pre-loaded entries content
-                for (const tournament of tournaments) {
-                    if (tournament.entriesContent) {
+                console.log('Tournament processing order:', tournamentOrder);
+                log(`Processing ${tournamentOrder.length} tournaments in order: ${tournamentOrder.slice(0, 5).join(', ')}...`);
+                
+                // Create a map for quick tournament lookup
+                const tournamentByName = {};
+                for (const t of tournaments) {
+                    tournamentByName[t.name] = t;
+                }
+                
+                // Build map of fetched entries
+                const entryResultsByTournament = {};
+                for (const result of fetchResults) {
+                    if (result.type === 'entries' && result.text) {
+                        entryResultsByTournament[result.tournament] = result;
+                    }
+                }
+                
+                // Process entries in the specified order (avoid duplicates)
+                const processedEntries = new Set();
+                for (const tName of tournamentOrder) {
+                    if (processedEntries.has(tName)) continue;
+                    
+                    const tournament = tournamentByName[tName];
+                    
+                    // Prefer pre-loaded entriesContent, fall back to fetched
+                    if (tournament && tournament.entriesContent) {
                         const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
                         totalEntries += mappings.length;
+                        processedEntries.add(tName);
+                    } else if (entryResultsByTournament[tName]) {
+                        const result = entryResultsByTournament[tName];
+                        const mappings = parseEntriesFile(result.text, result.tournament);
+                        totalEntries += mappings.length;
+                        processedEntries.add(tName);
                     }
                 }
                 
@@ -1169,9 +1217,10 @@
                     }
                 }
                 
-                // Process tournaments
-                for (const [tName, tFiles] of Object.entries(tournamentFiles)) {
-                    const tournament = tFiles.data;
+                // Process tournaments in the order specified by manifest for deterministic results
+                for (const tName of tournamentOrder) {
+                    const tFiles = tournamentFiles[tName];
+                    if (!tFiles) continue; // Skip if no files for this tournament
                     let bidLevel = determineBidLevel(tName) || 'quarters';
                     
                     const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
