@@ -374,13 +374,8 @@
         };
 
         const getSpeakerModifier = (speaks, isWin) => {
-            if (isWin) {
-                if (speaks >= 29) return 1.1;
-                return 1.0;
-            } else {
-                if (speaks >= 28.5) return 0.9;
-                return 1.0;
-            }
+            if (isWin) return speaks >= 29 ? 1.1 : 1.0;
+            return speaks >= 28.5 ? 0.9 : 1.0;
         };
 
         const normalizeName = (name) => {
@@ -689,10 +684,6 @@
                         const qualityFactor = (avgOppRating - 1500) / 500;
                         const winRateFactor = (winRate - 0.70) * 2;
                         ratingChange *= 1 + Math.min(0.25, qualityFactor * 0.15 + winRateFactor * 0.15);
-                    } else if (winRate >= 0.65 && avgOppRating >= BASE_RATING) {
-                        const qualityFactor = (avgOppRating - BASE_RATING) / 200;
-                        const consistencyBonus = 1 + Math.min(0.15, qualityFactor * 0.08 + (winRate - 0.65) * 0.3);
-                        ratingChange *= consistencyBonus;
                     }
                 }
             }
@@ -1129,21 +1120,28 @@
                     })
                 );
                 
-                // Process entries first
+                // Process entries first - in alphabetical order for consistency
                 let totalEntries = 0;
-                for (const result of fetchResults) {
-                    if (result.type === 'entries' && result.text) {
-                        const mappings = parseEntriesFile(result.text, result.tournament);
-                        totalEntries += mappings.length;
-                    }
-                }
                 
-                // Also process pre-loaded entries content
-                for (const tournament of tournaments) {
+                // Sort tournaments alphabetically before processing entries
+                const sortedTournamentsForEntries = [...tournaments].sort((a, b) => a.name.localeCompare(b.name));
+                
+                // First process pre-loaded entries content (in sorted order)
+                for (const tournament of sortedTournamentsForEntries) {
                     if (tournament.entriesContent) {
                         const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
                         totalEntries += mappings.length;
                     }
+                }
+                
+                // Then process fetched entries (in sorted order)
+                const sortedEntryResults = fetchResults
+                    .filter(r => r.type === 'entries' && r.text)
+                    .sort((a, b) => a.tournament.localeCompare(b.tournament));
+                    
+                for (const result of sortedEntryResults) {
+                    const mappings = parseEntriesFile(result.text, result.tournament);
+                    totalEntries += mappings.length;
                 }
                 
                 console.log(`Total entries loaded: ${totalEntries}`);
@@ -1169,9 +1167,13 @@
                     }
                 }
                 
-                // Process tournaments
-                for (const [tName, tFiles] of Object.entries(tournamentFiles)) {
-                    const tournament = tFiles.data;
+                // Process tournaments in alphabetical order for deterministic results
+                // Sort tournaments by name to ensure consistent processing order
+                const sortedTournaments = [...tournaments].sort((a, b) => a.name.localeCompare(b.name));
+                for (const tournament of sortedTournaments) {
+                    const tName = tournament.name;
+                    const tFiles = tournamentFiles[tName];
+                    if (!tFiles) continue; // Skip if no files for this tournament
                     let bidLevel = determineBidLevel(tName) || 'quarters';
                     
                     const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
