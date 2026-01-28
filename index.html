@@ -1058,15 +1058,7 @@
                 // Load manifest for fast loading
                 const manifest = await loadManifest();
                 
-                if (!manifest) {
-                    updateLoading('No manifest found. Scanning files (Slow)...');
-                    console.warn('Manifest.json not found or invalid. Run "node generate-manifest.js" locally to speed up loading.');
-                    // Add a small delay so the user sees the message
-                    await new Promise(r => setTimeout(r, 1000));
-                } else {
-                    updateLoading('Loading from manifest...');
-                }
-
+                updateLoading('Discovering tournaments...');
                 const tournaments = await discoverTournaments(season, manifest);
                 
                 if (tournaments.length === 0) {
@@ -1180,8 +1172,8 @@
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
                             
-                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || row['aff speaks'] || 28);
-                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || row['neg speaks'] || 28);
+                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
+                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
 
                             if (!aff || !neg) continue;
                             if (aff.toLowerCase().includes('bye') || neg.toLowerCase().includes('bye')) continue;
@@ -1246,8 +1238,8 @@
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
                             
-                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || row['aff speaks'] || 28);
-                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || row['neg speaks'] || 28);
+                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
+                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
 
                             if (!aff || !neg) continue;
 
