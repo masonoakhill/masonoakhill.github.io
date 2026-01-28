@@ -89,7 +89,7 @@
         <header class="mb-12">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings</h1>
+                    <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings aka I hate HTML code</h1>
                     <p class="text-sm text-white/40 mt-1">TOC Circuit • 
                         <select id="seasonSelect" class="bg-transparent text-white/60 outline-none border-b border-white/20 hover:border-white/40 focus:border-white/60 transition-colors cursor-pointer">
                             <option value="2025-2026" class="bg-[#0a0a0f]">2025-2026</option>
@@ -1065,6 +1065,11 @@
                     await new Promise(r => setTimeout(r, 1000));
                 } else {
                     updateLoading('Loading from manifest...');
+                    console.log('Manifest loaded:', manifest);
+                    if (manifest.data && manifest.data[season]) {
+                        console.log('Season data:', manifest.data[season]);
+                        console.log('Tournament order from manifest:', manifest.data[season].tournamentOrder);
+                    }
                 }
 
                 const tournaments = await discoverTournaments(season, manifest);
@@ -1123,10 +1128,26 @@
                 // Process entries first - in the order specified by manifest
                 let totalEntries = 0;
                 
-                // Get tournament order from manifest, or use the order tournaments appear
-                let tournamentOrder = (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder) 
-                    ? [...manifest.data[season].tournamentOrder]
-                    : tournaments.map(t => t.name);
+                // HARDCODED tournament order from original processing log - THIS IS CRITICAL FOR MATCHING RESULTS
+                const CORRECT_TOURNAMENT_ORDER = [
+                    "LaCosta", "BlueKey", "TOCDigital1", "StMarks", "Heritage Hall",
+                    "CollegePrep", "DowlingCatholic", "Emory", "Alta", "Greenhill",
+                    "Badgerland", "LonghornClassic", "Peninsula", "HarvardWestlake",
+                    "Princeton", "AppleValley", "Meadows", "NSDSO_Online", "Loyola",
+                    "Grapevine", "IsidoreNewman", "MidAmerica", "Yale", "Bronx",
+                    "Glenbrooks", "Damus", "Blake", "JackHowe", "NanoNagle"
+                ];
+                
+                // Get tournament order from manifest, or use hardcoded order, or use the order tournaments appear
+                let tournamentOrder;
+                if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder && manifest.data[season].tournamentOrder.length > 0) {
+                    tournamentOrder = [...manifest.data[season].tournamentOrder];
+                    console.log('Using tournament order from manifest');
+                } else {
+                    // Use hardcoded order for 2025-2026
+                    tournamentOrder = [...CORRECT_TOURNAMENT_ORDER];
+                    console.log('Using hardcoded tournament order');
+                }
                 
                 // Add any tournaments that exist but aren't in the order list
                 const orderSet = new Set(tournamentOrder);
@@ -1137,6 +1158,7 @@
                 }
                 
                 console.log('Tournament processing order:', tournamentOrder);
+                log(`Processing ${tournamentOrder.length} tournaments in order: ${tournamentOrder.slice(0, 5).join(', ')}...`);
                 
                 // Create a map for quick tournament lookup
                 const tournamentByName = {};
@@ -1144,16 +1166,7 @@
                     tournamentByName[t.name] = t;
                 }
                 
-                // Process entries in the specified order
-                for (const tName of tournamentOrder) {
-                    const tournament = tournamentByName[tName];
-                    if (tournament && tournament.entriesContent) {
-                        const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
-                        totalEntries += mappings.length;
-                    }
-                }
-                
-                // Also process fetched entries in the specified order
+                // Build map of fetched entries
                 const entryResultsByTournament = {};
                 for (const result of fetchResults) {
                     if (result.type === 'entries' && result.text) {
@@ -1161,11 +1174,23 @@
                     }
                 }
                 
+                // Process entries in the specified order (avoid duplicates)
+                const processedEntries = new Set();
                 for (const tName of tournamentOrder) {
-                    const result = entryResultsByTournament[tName];
-                    if (result) {
+                    if (processedEntries.has(tName)) continue;
+                    
+                    const tournament = tournamentByName[tName];
+                    
+                    // Prefer pre-loaded entriesContent, fall back to fetched
+                    if (tournament && tournament.entriesContent) {
+                        const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
+                        totalEntries += mappings.length;
+                        processedEntries.add(tName);
+                    } else if (entryResultsByTournament[tName]) {
+                        const result = entryResultsByTournament[tName];
                         const mappings = parseEntriesFile(result.text, result.tournament);
                         totalEntries += mappings.length;
+                        processedEntries.add(tName);
                     }
                 }
                 
