@@ -374,13 +374,8 @@
         };
 
         const getSpeakerModifier = (speaks, isWin) => {
-            if (isWin) {
-                if (speaks >= 29) return 1.1;
-                return 1.0;
-            } else {
-                if (speaks >= 28.5) return 0.9;
-                return 1.0;
-            }
+            if (isWin) return speaks >= 29 ? 1.1 : 1.0;
+            return speaks >= 28.5 ? 0.9 : 1.0;
         };
 
         const normalizeName = (name) => {
@@ -392,38 +387,32 @@
 
         const abbreviationMatchesName = (abbrev, fullName) => {
             if (!abbrev || !fullName) return false;
+            const nameParts = fullName.trim().split(/\s+/);
+            if (nameParts.length === 0) return false;
             
-            const cleanAbbrev = abbrev.replace(/[^a-zA-Z]/g, '');
-            const cleanName = fullName.replace(/[^a-zA-Z\s]/g, '');
-            const nameParts = cleanName.trim().split(/\s+/);
+            let namePartIndex = 0;
+            let charInPart = 0;
             
-            if (nameParts.length < 2 || cleanAbbrev.length < 2) return false;
-
-            // Strict Rules to prevent false merges
-            
-            // 1. Exact Initials Match
-            const initials = nameParts.map(p => p[0].toUpperCase()).join('');
-            if (cleanAbbrev.toUpperCase() === initials) return true;
-
-            // 2. First Initial + Last Name Prefix
-            const firstName = nameParts[0];
-            const lastName = nameParts[nameParts.length - 1];
-            
-            // Hardcoded exception for Harker SSh / Sanjith Senthil collision
-            if (cleanAbbrev === 'SSh' && lastName.toLowerCase().startsWith('sent')) return false;
-
-            if (cleanAbbrev[0].toUpperCase() === firstName[0].toUpperCase()) {
-                const suffix = cleanAbbrev.slice(1).toLowerCase();
-                const lastNameLower = lastName.toLowerCase();
+            for (let i = 0; i < abbrev.length; i++) {
+                const char = abbrev[i];
+                const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
                 
-                if (suffix.length > lastNameLower.length) return false;
-                
-                if (lastNameLower.startsWith(suffix)) {
-                    return true;
+                if (isUpper) {
+                    if (namePartIndex >= nameParts.length) return false;
+                    const namePart = nameParts[namePartIndex];
+                    if (namePart.charAt(0).toUpperCase() !== char.toUpperCase()) return false;
+                    charInPart = 1;
+                    namePartIndex++;
+                } else {
+                    const currentPartIndex = namePartIndex - 1;
+                    if (currentPartIndex < 0) return false;
+                    const namePart = nameParts[currentPartIndex];
+                    if (charInPart >= namePart.length) return false;
+                    if (namePart.charAt(charInPart).toLowerCase() !== char.toLowerCase()) return false;
+                    charInPart++;
                 }
             }
-            
-            return false;
+            return true;
         };
 
         const extractAbbrevFromCode = (code) => {
@@ -540,6 +529,11 @@
         };
 
         const getCompetitor = (id, tournamentName = null) => {
+            // CRITICAL FIX: Use the FULL NAME as the primary identifier when available.
+            // This ensures that:
+            // 1. "Harker AS" (Ansh Sheth) at Tournament A is DIFFERENT from "Harker AS" (Anirudh Subramanian) at Tournament B
+            // 2. "Harker ASh" (Ansh Sheth) merges with "Peninsula AS" (Ansh Sheth) if they're the same person
+            
             let resolvedFullName = null;
             let resolvedFullCode = null;
             let school = '';
@@ -626,7 +620,7 @@
             return state.competitors[canonicalId];
         };
 
-        // Logging
+        // Logging (console only now)
         const log = (msg) => console.log(msg);
         const clearLog = () => {};
         const showLog = () => {};
@@ -797,37 +791,39 @@
         };
 
         const buildMergeMappings = () => {
-            // Group all codes (full and abbreviated) by their resolved normalized name
-            const nameToCodesList = {};
+            // Build a map of full codes to their resolved names
+            // Only merge FULL codes (like "Harker Ansh Sheth") that have the same name
+            // Do NOT merge abbreviated codes directly - those are resolved per-tournament
             
-            // 1. Process global FULL codes
-            for (const [code, name] of Object.entries(state.codeToName)) {
-                const normName = normalizeName(name);
-                if (!normName) continue;
-                if (!nameToCodesList[normName]) nameToCodesList[normName] = new Set();
-                nameToCodesList[normName].add(code);
-            }
-
-            // 2. Process tournament-specific mappings (crucial for linking "Harker SS" to "Harker Sanjith Senthil")
-            for (const [tName, entries] of Object.entries(state.tournamentEntriesMap)) {
-                for (const [code, entry] of Object.entries(entries)) {
-                    const normName = normalizeName(entry.name);
-                    if (!normName) continue;
-                    if (!nameToCodesList[normName]) nameToCodesList[normName] = new Set();
-                    // Add both the abbreviated code (key) and full code
-                    nameToCodesList[normName].add(entry.fullCode); 
+            const nameToFullCodesList = {};
+            
+            // Only use codeToName which maps FULL codes to names
+            for (const [fullCode, name] of Object.entries(state.codeToName)) {
+                const normalizedName = normalizeName(name);
+                if (!normalizedName) continue;
+                
+                // Only include full codes (codes that contain a full name, not abbreviations)
+                // Full codes typically have more than 2 parts and the last part isn't all caps
+                const parts = fullCode.trim().split(/\s+/);
+                const lastPart = parts[parts.length - 1];
+                const isAbbreviation = lastPart.length <= 4 && lastPart === lastPart.toUpperCase();
+                
+                // Skip abbreviated codes - they should be resolved per-tournament
+                if (isAbbreviation) continue;
+                
+                if (!nameToFullCodesList[normalizedName]) nameToFullCodesList[normalizedName] = [];
+                if (!nameToFullCodesList[normalizedName].includes(fullCode)) {
+                    nameToFullCodesList[normalizedName].push(fullCode);
                 }
             }
             
             let mergeCount = 0;
-            for (const [normalizedName, codesSet] of Object.entries(nameToCodesList)) {
-                const codes = Array.from(codesSet);
+            for (const [normalizedName, codes] of Object.entries(nameToFullCodesList)) {
                 if (codes.length <= 1) continue;
                 
-                // Sort to find canonical: longest first (most descriptive), then alphabetical
-                codes.sort((a, b) => b.length - a.length || a.localeCompare(b));
-                const canonicalCode = codes[0]; // Use longest code as canonical (e.g. "Harker Sanjith Senthil")
-                
+                // Sort by length (shorter first) then alphabetically
+                codes.sort((a, b) => a.length - b.length || a.localeCompare(b));
+                const canonicalCode = codes[0];
                 state.nameToCanonicalCode[normalizedName] = canonicalCode;
                 
                 for (const code of codes) {
@@ -836,18 +832,206 @@
                         mergeCount++;
                     }
                 }
-                if (codes.length > 1) {
-                    // Debug specific merges for Harker to trace the issue
-                    if (canonicalCode.includes('Harker')) {
-                        console.log(`Debug Merge: ${codes.join(' + ')} merged because they normalized to "${normalizedName}"`);
-                    }
-                    log(`  Merging: ${codes.join(' + ')} → "${state.codeToName[canonicalCode] || normalizedName}"`);
-                }
+                log(`  Merging: ${codes.join(' + ')} → "${state.codeToName[canonicalCode]}"`);
             }
             return mergeCount;
         };
 
-        const processFiles = async (files) => {
+        // Fast file fetch with caching
+        const fetchFile = async (path) => {
+            if (fileCache.has(path)) return fileCache.get(path);
+            try {
+                const response = await fetch(getDirectUrl(path));
+                if (response.ok) {
+                    const text = await response.text();
+                    fileCache.set(path, text);
+                    return text;
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        };
+
+        // Try to fetch a file, return null if it doesn't exist (no error logging)
+        const tryFetchFile = async (path) => {
+            try {
+                const response = await fetch(getDirectUrl(path), { method: 'HEAD' });
+                if (response.ok) {
+                    return fetchFile(path);
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        };
+
+        // Load manifest or discover structure
+        const loadManifest = async () => {
+            const text = await fetchFile('manifest.json');
+            if (text) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse manifest:', e);
+                }
+            }
+            return null;
+        };
+
+        // Discover seasons by trying known patterns
+        const discoverSeasons = async () => {
+            // Try manifest first
+            const manifest = await loadManifest();
+            if (manifest && manifest.seasons) {
+                return manifest.seasons.sort().reverse();
+            }
+            
+            // Fallback: try common season years
+            const currentYear = new Date().getFullYear();
+            const possibleSeasons = [];
+            for (let year = currentYear + 1; year >= 2020; year--) {
+                possibleSeasons.push(`${year}-${year + 1}`);
+            }
+            
+            // Check which seasons exist by trying to fetch their LD folder
+            const checks = await Promise.all(
+                possibleSeasons.map(async (season) => {
+                    const response = await fetch(getDirectUrl(`${season}/LD/`), { method: 'HEAD' }).catch(() => null);
+                    return response && response.ok ? season : null;
+                })
+            );
+            
+            return checks.filter(Boolean);
+        };
+
+        // Populate season dropdown
+        const populateSeasonDropdown = async () => {
+            const seasons = await discoverSeasons();
+            if (seasons.length === 0) {
+                el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
+                return;
+            }
+            
+            el.seasonSelect.innerHTML = seasons.map(season => 
+                `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
+            ).join('');
+            
+            loadSeasonData(seasons[0]);
+        };
+
+        // Discover tournaments from manifest or by scanning
+        const discoverTournaments = async (season, manifest) => {
+            // If manifest has tournament data, use it
+            if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournaments.length > 0) {
+                return manifest.data[season].tournaments;
+            }
+            
+            // Otherwise, we need to discover - fetch the index page and parse links
+            // This is a workaround since we can't list directories on GitHub Pages
+            // We'll try to fetch a tournaments.txt file that lists tournament names
+            const tournamentsListText = await fetchFile(`${season}/LD/tournaments.txt`);
+            if (tournamentsListText) {
+                const tournamentNames = tournamentsListText.split('\n').map(t => t.trim()).filter(Boolean);
+                return await Promise.all(tournamentNames.map(async (name) => {
+                    return await discoverTournamentStructure(season, name);
+                }));
+            }
+            
+            // Last resort: try to parse HTML directory listing (works on some servers)
+            try {
+                const response = await fetch(getDirectUrl(`${season}/LD/`));
+                if (response.ok) {
+                    const html = await response.text();
+                    const tournamentNames = extractLinksFromHTML(html);
+                    if (tournamentNames.length > 0) {
+                        const tournaments = await Promise.all(
+                            tournamentNames.map(name => discoverTournamentStructure(season, name))
+                        );
+                        return tournaments.filter(t => t.prelims.length > 0 || t.elims.length > 0);
+                    }
+                }
+            } catch (e) {}
+            
+            return [];
+        };
+
+        // Extract directory links from HTML (GitHub Pages directory listing)
+        const extractLinksFromHTML = (html) => {
+            const links = [];
+            const regex = /href="([^"]+)\/"/g;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+                const name = match[1];
+                if (name && !name.startsWith('.') && !name.startsWith('http') && name !== '..') {
+                    links.push(decodeURIComponent(name));
+                }
+            }
+            return links;
+        };
+
+        // Discover structure for a single tournament
+        const discoverTournamentStructure = async (season, tournamentName) => {
+            const basePath = `${season}/LD/${tournamentName}`;
+            const tournament = {
+                name: tournamentName,
+                path: basePath,
+                entries: null,
+                prelims: [],
+                elims: []
+            };
+
+            // Try to find entries file
+            const entriesFile = await fetchFile(`${basePath}/entries.csv`);
+            if (entriesFile) {
+                tournament.entries = 'entries.csv';
+                tournament.entriesContent = entriesFile;
+            }
+
+            // Try to discover prelim files by trying common patterns
+            const prelimPromises = [];
+            for (let i = 1; i <= 10; i++) {
+                prelimPromises.push(
+                    fetch(getDirectUrl(`${basePath}/Prelims/Round${i}.csv`), { method: 'HEAD' })
+                        .then(r => r.ok ? `Round${i}.csv` : null)
+                        .catch(() => null)
+                );
+                prelimPromises.push(
+                    fetch(getDirectUrl(`${basePath}/Prelims/Tabroom-${1400000 + i}.csv`), { method: 'HEAD' })
+                        .then(r => r.ok ? `Tabroom-${1400000 + i}.csv` : null)
+                        .catch(() => null)
+                );
+            }
+
+            // Try to discover prelims from HTML listing
+            try {
+                const prelimsHtml = await fetch(getDirectUrl(`${basePath}/Prelims/`)).then(r => r.ok ? r.text() : '');
+                const prelimFiles = extractCSVLinksFromHTML(prelimsHtml);
+                tournament.prelims = prelimFiles;
+            } catch (e) {}
+
+            // Try to discover elims from HTML listing  
+            try {
+                const elimsHtml = await fetch(getDirectUrl(`${basePath}/Elims/`)).then(r => r.ok ? r.text() : '');
+                const elimFiles = extractCSVLinksFromHTML(elimsHtml);
+                tournament.elims = elimFiles;
+            } catch (e) {}
+
+            return tournament;
+        };
+
+        // Extract CSV file links from HTML
+        const extractCSVLinksFromHTML = (html) => {
+            const links = [];
+            const regex = /href="([^"]+\.csv)"/gi;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+                links.push(decodeURIComponent(match[1]));
+            }
+            return links;
+        };
+
+        const loadSeasonData = async (season) => {
             state.processing = true;
             state.competitors = {};
             state.tournaments = [];
@@ -860,124 +1044,183 @@
             state.tournamentSchoolMap = {};
             state.matchupHistory = {};
             
-            el.uploadBtn.classList.add('opacity-50', 'pointer-events-none');
-            el.uploadText.textContent = "Processing...";
-            el.folderInput.disabled = true;
+            el.loadingIndicator.classList.remove('hidden');
+            el.emptyState.classList.add('hidden');
+            el.exportBtn.disabled = true;
+            el.h2hBtn.disabled = true;
             
-            clearLog();
-            showLog();
-            log(`Found ${files.length} files...`);
-
-            await new Promise(r => setTimeout(r, 50));
+            const loadingText = document.getElementById('loadingText');
+            const updateLoading = (text) => { if (loadingText) loadingText.textContent = text; };
+            
+            updateLoading('Loading...');
 
             try {
-                const tournamentMap = {};
+                // Load manifest for fast loading
+                const manifest = await loadManifest();
                 
-                for (const file of files) {
-                    const pathParts = file.webkitRelativePath.split('/');
-                    const filename = pathParts[pathParts.length - 1].toLowerCase();
-                    
-                    // Flexible entry file detection
-                    if (filename.includes('entries') || filename.includes('entry')) {
-                        // Find tournament name by walking up the path until we hit the season folder
-                        // Structure: {season}/LD/{tournamentName}/...
-                        let tournamentName = null;
-                        for (let i = 0; i < pathParts.length - 1; i++) {
-                            if (pathParts[i] === 'LD' && i + 1 < pathParts.length) {
-                                tournamentName = pathParts[i+1];
-                                break;
-                            }
-                        }
-                        
-                        // Fallback: assume parent folder is tournament name
-                        if (!tournamentName && pathParts.length >= 2) {
-                            tournamentName = pathParts[pathParts.length - 2];
-                        }
+                if (!manifest) {
+                    updateLoading('No manifest found. Scanning files (Slow)...');
+                    console.warn('Manifest.json not found or invalid. Run "node generate-manifest.js" locally to speed up loading.');
+                    // Add a small delay so the user sees the message
+                    await new Promise(r => setTimeout(r, 1000));
+                } else {
+                    updateLoading('Loading from manifest...');
+                    console.log('Manifest loaded:', manifest);
+                    if (manifest.data && manifest.data[season]) {
+                        console.log('Season data:', manifest.data[season]);
+                        console.log('Tournament order from manifest:', manifest.data[season].tournamentOrder);
+                    }
+                }
 
-                        if (tournamentName) {
-                            if (!tournamentMap[tournamentName]) {
-                                tournamentMap[tournamentName] = { name: tournamentName, prelims: [], elims: [], entries: [] };
-                            }
-                            tournamentMap[tournamentName].entries.push({ file, filename });
-                            continue;
-                        }
-                    }
-                    
-                    let folderIndex = -1;
-                    let folderType = null;
-                    
-                    for (let i = 0; i < pathParts.length - 1; i++) {
-                        const part = pathParts[i].toLowerCase();
-                        if (part.includes('prelim')) { folderIndex = i; folderType = 'prelims'; break; }
-                        else if (part.includes('elim')) { folderIndex = i; folderType = 'elims'; break; }
-                    }
-                    
-                    if (folderIndex < 1) continue;
-                    
-                    const tournamentName = pathParts[folderIndex - 1];
-                    if (!tournamentMap[tournamentName]) {
-                        tournamentMap[tournamentName] = { name: tournamentName, prelims: [], elims: [], entries: [] };
-                    }
-                    
-                    if (folderType === 'prelims') tournamentMap[tournamentName].prelims.push({ file, filename });
-                    else if (folderType === 'elims') tournamentMap[tournamentName].elims.push({ file, filename });
+                const tournaments = await discoverTournaments(season, manifest);
+                
+                if (tournaments.length === 0) {
+                    throw new Error(`No tournaments found for ${season}. Make sure manifest.json is configured or ${season}/LD/ exists with proper structure.`);
                 }
                 
-                log(`Identified ${Object.keys(tournamentMap).length} tournaments.\n`);
+                console.log(`Found ${tournaments.length} tournaments`);
+                updateLoading(`Loading ${tournaments.length} tournaments...`);
 
-                // Load entries first
+                // Build list of ALL files to fetch
+                const allFilesToFetch = [];
+                
+                for (const tournament of tournaments) {
+                    // Entries file
+                    if (tournament.entries && !tournament.entriesContent) {
+                        allFilesToFetch.push({
+                            type: 'entries',
+                            tournament: tournament.name,
+                            path: `${tournament.path}/${tournament.entries}`
+                        });
+                    }
+                    
+                    // Prelim files
+                    for (const filename of (tournament.prelims || [])) {
+                        allFilesToFetch.push({
+                            type: 'prelim',
+                            tournament: tournament.name,
+                            tournamentData: tournament,
+                            filename,
+                            path: `${tournament.path}/Prelims/${filename}`
+                        });
+                    }
+                    
+                    // Elim files
+                    for (const filename of (tournament.elims || [])) {
+                        allFilesToFetch.push({
+                            type: 'elim',
+                            tournament: tournament.name,
+                            tournamentData: tournament,
+                            filename,
+                            path: `${tournament.path}/Elims/${filename}`
+                        });
+                    }
+                }
+                
+                // Fetch ALL files in parallel (maximum speed)
+                const fetchResults = await Promise.all(
+                    allFilesToFetch.map(async (file) => {
+                        const text = await fetchFile(file.path);
+                        return { ...file, text };
+                    })
+                );
+                
+                // Process entries first - in the order specified by manifest
                 let totalEntries = 0;
-                for (const [tName, tFiles] of Object.entries(tournamentMap)) {
-                    for (const {file, filename} of tFiles.entries) {
-                        if (!filename.toLowerCase().endsWith('.csv')) continue;
-                        const text = await file.text();
-                        const mappings = parseEntriesFile(text, tName);
-                        totalEntries += mappings.length;
+                
+                // HARDCODED tournament order from original processing log - THIS IS CRITICAL FOR MATCHING RESULTS
+                const CORRECT_TOURNAMENT_ORDER = [
+                    "LaCosta", "BlueKey", "TOCDigital1", "StMarks", "Heritage Hall",
+                    "CollegePrep", "DowlingCatholic", "Emory", "Alta", "Greenhill",
+                    "Badgerland", "LonghornClassic", "Peninsula", "HarvardWestlake",
+                    "Princeton", "AppleValley", "Meadows", "NSDSO_Online", "Loyola",
+                    "Grapevine", "IsidoreNewman", "MidAmerica", "Yale", "Bronx",
+                    "Glenbrooks", "Damus", "Blake", "JackHowe", "NanoNagle"
+                ];
+                
+                // Get tournament order from manifest, or use hardcoded order, or use the order tournaments appear
+                let tournamentOrder;
+                if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder && manifest.data[season].tournamentOrder.length > 0) {
+                    tournamentOrder = [...manifest.data[season].tournamentOrder];
+                    console.log('Using tournament order from manifest');
+                } else {
+                    // Use hardcoded order for 2025-2026
+                    tournamentOrder = [...CORRECT_TOURNAMENT_ORDER];
+                    console.log('Using hardcoded tournament order');
+                }
+                
+                // Add any tournaments that exist but aren't in the order list
+                const orderSet = new Set(tournamentOrder);
+                for (const t of tournaments) {
+                    if (!orderSet.has(t.name)) {
+                        tournamentOrder.push(t.name);
                     }
                 }
                 
-                log(`\nTotal entries: ${totalEntries}`);
+                console.log('Tournament processing order:', tournamentOrder);
+                log(`Processing ${tournamentOrder.length} tournaments in order: ${tournamentOrder.slice(0, 5).join(', ')}...`);
+                
+                // Create a map for quick tournament lookup
+                const tournamentByName = {};
+                for (const t of tournaments) {
+                    tournamentByName[t.name] = t;
+                }
+                
+                // Build map of fetched entries
+                const entryResultsByTournament = {};
+                for (const result of fetchResults) {
+                    if (result.type === 'entries' && result.text) {
+                        entryResultsByTournament[result.tournament] = result;
+                    }
+                }
+                
+                // Process entries in the specified order (avoid duplicates)
+                const processedEntries = new Set();
+                for (const tName of tournamentOrder) {
+                    if (processedEntries.has(tName)) continue;
+                    
+                    const tournament = tournamentByName[tName];
+                    
+                    // Prefer pre-loaded entriesContent, fall back to fetched
+                    if (tournament && tournament.entriesContent) {
+                        const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
+                        totalEntries += mappings.length;
+                        processedEntries.add(tName);
+                    } else if (entryResultsByTournament[tName]) {
+                        const result = entryResultsByTournament[tName];
+                        const mappings = parseEntriesFile(result.text, result.tournament);
+                        totalEntries += mappings.length;
+                        processedEntries.add(tName);
+                    }
+                }
+                
+                console.log(`Total entries loaded: ${totalEntries}`);
                 
                 const mergeCount = buildMergeMappings();
-                if (mergeCount > 0) log(`\nMerged ${mergeCount} duplicate entries.`);
+                if (mergeCount > 0) console.log(`Merged ${mergeCount} duplicate entries.`);
 
                 // Group round files by tournament
+                const fileContents = fetchResults.filter(f => f.type === 'prelim' || f.type === 'elim');
+                
+                // Group by tournament
                 const tournamentFiles = {};
-                for (const [tName, tFiles] of Object.entries(tournamentMap)) {
-                    tournamentFiles[tName] = { prelims: [], elims: [], data: { name: tName } };
-                    
-                    for (const {file, filename} of tFiles.prelims) {
-                        const text = await file.text();
-                        tournamentFiles[tName].prelims.push({ filename, text });
+                for (const file of fileContents) {
+                    if (!tournamentFiles[file.tournament]) {
+                        tournamentFiles[file.tournament] = { prelims: [], elims: [], data: file.tournamentData };
                     }
-                    
-                    for (const {file, filename} of tFiles.elims) {
-                        const text = await file.text();
-                        tournamentFiles[tName].elims.push({ filename, text });
+                    if (file.text) {
+                        if (file.type === 'prelim') {
+                            tournamentFiles[file.tournament].prelims.push({ filename: file.filename, text: file.text });
+                        } else {
+                            tournamentFiles[file.tournament].elims.push({ filename: file.filename, text: file.text });
+                        }
                     }
                 }
                 
-                // Process tournaments
-                // Sort tournaments to ensure chronological processing (critical for Elo)
-                // We rely on the manifest order if available, otherwise we try to sort by date heuristics or keep alphabetical as fallback
-                const sortedTournaments = Object.keys(tournamentFiles);
-                // (Note: Manifest sorting only works if we fetched manifest, but here we are in drag-and-drop mode)
-                // Drag-and-drop mode implies we don't have manifest. We should try to sort alphabetically as a proxy if we can't do better, 
-                // but usually user folders are named somewhat randomly.
-                // However, the user specifically mentioned "processes tournaments alphabetically" as an issue.
-                // If they are drag-and-dropping, the browser gives file list. We can't easily date-sort without metadata.
-                // But wait, the user's console log earlier showed "Using tournament order from manifest". 
-                // That implies they are NOT using drag-and-drop, they are using the manifest loader. 
-                // But `processFiles` is the drag-and-drop handler! 
-                // `loadSeasonData` is the manifest handler.
-                
-                // If the user is using `processFiles` (drag/drop), we can't use manifest order.
-                // I will add a heuristic sort or just alphabetical sort.
-                sortedTournaments.sort(); 
-
-                for (const tName of sortedTournaments) {
+                // Process tournaments in the order specified by manifest for deterministic results
+                for (const tName of tournamentOrder) {
                     const tFiles = tournamentFiles[tName];
-                    const tournament = tFiles.data;
+                    if (!tFiles) continue; // Skip if no files for this tournament
                     let bidLevel = determineBidLevel(tName) || 'quarters';
                     
                     const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
@@ -995,8 +1238,8 @@
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
                             
-                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
-                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
+                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || row['aff speaks'] || 28);
+                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || row['neg speaks'] || 28);
 
                             if (!aff || !neg) continue;
                             if (aff.toLowerCase().includes('bye') || neg.toLowerCase().includes('bye')) continue;
@@ -1006,9 +1249,11 @@
                             
                             if (!affWon && !negWon) continue;
 
+                            // Check for same-school matchup (walkover) in prelims too
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
+                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
@@ -1020,6 +1265,7 @@
                             const updatePrelimStats = (id, won, isWO) => {
                                 const comp = getCompetitor(id, tName);
                                 if (!comp.tournamentStats[tName]) comp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
+                                // Only count non-walkover rounds in stats display
                                 if (!isWO) {
                                     if (won) comp.tournamentStats[tName].pWins++;
                                     else comp.tournamentStats[tName].pLosses++;
@@ -1058,8 +1304,8 @@
                             const neg = row.neg || '';
                             const winner = (row.win || '').toString().toLowerCase();
                             
-                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || 28);
-                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || 28);
+                            const affSpeaks = parseFloat(row['aff points'] || row.aff_points || row['aff speaks'] || 28);
+                            const negSpeaks = parseFloat(row['neg points'] || row.neg_points || row['neg speaks'] || 28);
 
                             if (!aff || !neg) continue;
 
@@ -1068,9 +1314,11 @@
 
                             if (!affWon && !negWon) continue;
 
+                            // Use tournament-specific lookup for proper competitor resolution
                             const affComp = getCompetitor(aff, tName);
                             const negComp = getCompetitor(neg, tName);
                             
+                            // Track participants using their canonical IDs
                             participants.add(affComp.id);
                             participants.add(negComp.id);
                             const isWalkover = state.settings.walkoversEnabled && (affComp.school === negComp.school);
@@ -1105,6 +1353,7 @@
                             updateElimStats(neg, elimLevel, negWon);
                             
                             const recordPlacement = (id, level) => {
+                                // Get the actual competitor to use their canonical ID
                                 const comp = getCompetitor(id, tName);
                                 const canonId = comp.id;
                                 const levels = { 'octas': 1, 'quarters': 2, 'semis': 3, 'finals': 4, 'winner': 5 };
@@ -1148,13 +1397,13 @@
                 el.h2hBtn.disabled = false;
 
             } catch (err) {
-                log(`\n✗ Error: ${err.message}`);
+                log(`Error: ${err.message}`);
                 console.error(err);
+                el.emptyState.classList.remove('hidden');
+                el.emptyState.querySelector('p').textContent = `Failed to load data: ${err.message}`;
             } finally {
                 state.processing = false;
-                el.uploadBtn.classList.remove('opacity-50', 'pointer-events-none');
-                el.uploadText.textContent = "Import";
-                el.folderInput.disabled = false;
+                el.loadingIndicator.classList.add('hidden');
             }
         };
 
@@ -1173,17 +1422,27 @@
             if (isSearching) {
                 const query = searchQuery.toLowerCase().trim();
                 comps = allComps.filter(comp => {
+                    // Search by full name
                     const fullName = comp.fullName || lookupFullName(comp.id) || '';
                     if (fullName.toLowerCase().includes(query)) return true;
+                    
+                    // Search by code/id
                     if (comp.id.toLowerCase().includes(query)) return true;
+                    
+                    // Search by school
                     if (comp.school.toLowerCase().includes(query)) return true;
+                    
+                    // Search by any of their codes
                     if (comp.allCodes) {
                         for (const code of comp.allCodes) {
                             if (code.toLowerCase().includes(query)) return true;
                         }
                     }
+                    
                     return false;
                 });
+                
+                // Update title
                 el.rankingsTitle.textContent = `Search Results (${comps.length} found)`;
             } else {
                 comps = allComps.slice(0, 50);
@@ -1201,6 +1460,7 @@
             el.rankingsContainer.innerHTML = '';
             
             comps.forEach((comp, index) => {
+                // Get actual rank among ALL competitors
                 const actualRank = allComps.findIndex(c => c.id === comp.id) + 1;
                 
                 let displayName = comp.fullName || lookupFullName(comp.id);
@@ -1217,11 +1477,14 @@
                 const winRate = comp.rounds > 0 ? ((comp.wins / comp.rounds) * 100).toFixed(1) : 0;
                 const ratingGap = Math.round(comp.rating) - avgOpp;
                 
+                // Helper calculation for display
                 comp.affRounds = comp.affWins + comp.affLosses;
                 comp.negRounds = comp.negWins + comp.negLosses;
 
+                // Peak rating
                 const peakRating = Math.round(Math.max(...comp.ratingHistory));
                 
+                // Badge colors based on actual rank
                 let badgeClass = 'bg-white/10 text-white/60';
                 if (actualRank === 1) badgeClass = 'bg-yellow-500/20 text-yellow-400';
                 else if (actualRank === 2) badgeClass = 'bg-gray-400/20 text-gray-300';
@@ -1335,25 +1598,38 @@
         };
 
         // Event Listeners
-        el.folderInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files).filter(f => f.name.endsWith('.csv'));
-            if (files.length === 0) { alert('No CSV files found.'); return; }
-            processFiles(files);
-        });
-
         el.exportBtn.addEventListener('click', exportRankings);
-        el.diversityPenalty.addEventListener('change', (e) => { state.settings.regionalDiversityPenalty = e.target.checked; });
-        el.walkoversEnabled.addEventListener('change', (e) => { state.settings.walkoversEnabled = e.target.checked; });
+        
+        // Season select change handler
+        el.seasonSelect.addEventListener('change', (e) => {
+            if (!state.processing) {
+                loadSeasonData(e.target.value);
+            }
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSeasonDropdown();
+        });
+        
+        // Also try to load immediately if DOM is already ready
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            populateSeasonDropdown();
+        }
         
         // Search functionality
         let searchTimeout;
         el.searchInput.addEventListener('input', (e) => {
             const query = e.target.value;
+            
+            // Show/hide clear button
             if (query.length > 0) {
                 el.clearSearch.classList.remove('hidden');
             } else {
                 el.clearSearch.classList.add('hidden');
             }
+            
+            // Debounce search
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 if (Object.keys(state.competitors).length > 0) {
@@ -1370,10 +1646,7 @@
             }
         });
         
-        el.folderInput.addEventListener('change', () => {
-            el.searchInput.value = '';
-            el.clearSearch.classList.add('hidden');
-        });
+
         
         // Head to Head functionality
         const openH2HModal = () => {
@@ -1415,6 +1688,7 @@
                 dropdown.classList.add('hidden');
                 return;
             }
+            
             dropdown.innerHTML = results.map(comp => {
                 const fullName = comp.fullName || lookupFullName(comp.id) || comp.id;
                 return `
@@ -1424,7 +1698,10 @@
                     </div>
                 `;
             }).join('');
+            
             dropdown.classList.remove('hidden');
+            
+            // Add click handlers
             dropdown.querySelectorAll('[data-id]').forEach(item => {
                 item.addEventListener('click', () => {
                     const compId = item.dataset.id;
@@ -1437,8 +1714,10 @@
         const selectH2HCompetitor = (compId, side) => {
             const comp = state.competitors[compId];
             if (!comp) return;
+            
             const fullName = comp.fullName || lookupFullName(comp.id) || comp.id;
             state.h2hSelection[side] = comp;
+            
             if (side === 'aff') {
                 el.h2hAffSearch.value = fullName;
                 el.h2hAffDropdown.classList.add('hidden');
@@ -1456,23 +1735,36 @@
                 el.h2hNegRating.textContent = Math.round(comp.rating);
                 el.h2hNegRecord.textContent = `${comp.wins}-${comp.losses}`;
             }
+            
             updateH2HPrediction();
         };
         
         const updateH2HPrediction = () => {
             const aff = state.h2hSelection.aff;
             const neg = state.h2hSelection.neg;
+            
             if (!aff || !neg) {
                 el.h2hPrediction.classList.add('hidden');
                 el.h2hHistory.classList.add('hidden');
                 return;
             }
+            
+            // ========== SOPHISTICATED H2H PREDICTION ALGORITHM ==========
+            
+            // 1. BASE ELO PROBABILITY (40% weight)
             const affRating = aff.rating;
             const negRating = neg.rating;
             const eloProb = expectedScore(affRating, negRating);
+            
+            // 2. SIDE-SPECIFIC PERFORMANCE (20% weight)
+            // How well does aff perform ON AFF, and how well does neg perform ON NEG?
             const affOnAffWinRate = aff.affRounds >= 3 ? aff.affWins / aff.affRounds : 0.5;
             const negOnNegWinRate = neg.negRounds >= 3 ? neg.negWins / neg.negRounds : 0.5;
+            // Normalize to probability advantage
             const sideProb = 0.5 + ((affOnAffWinRate - 0.5) * 0.5) - ((negOnNegWinRate - 0.5) * 0.5);
+            
+            // 3. RECENT FORM / WIN TRENDS (15% weight)
+            // Look at last 10 rounds from rating history to determine momentum
             const getRecentTrend = (comp) => {
                 const history = comp.ratingHistory || [BASE_RATING];
                 if (history.length < 3) return 0;
@@ -1481,30 +1773,41 @@
                 const secondHalf = recent.slice(Math.floor(recent.length / 2));
                 const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
                 const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+                // Return momentum as a value between -1 (declining) and 1 (improving)
                 return Math.max(-1, Math.min(1, (secondAvg - firstAvg) / 100));
             };
             const affTrend = getRecentTrend(aff);
             const negTrend = getRecentTrend(neg);
             const trendProb = 0.5 + ((affTrend - negTrend) * 0.25);
+            
+            // 4. HEAD-TO-HEAD HISTORY (25% weight if they've faced each other)
             const matchupKey = [aff.id, neg.id].sort().join('::');
             const history = state.matchupHistory[matchupKey] || [];
             let h2hProb = 0.5;
             let h2hWeight = 0;
+            
             if (history.length > 0) {
+                // Calculate h2h record with recency weighting
                 let affH2HWins = 0;
                 let totalH2HWeight = 0;
                 history.forEach((match, idx) => {
+                    // More recent matches weighted higher
                     const recencyWeight = 1 + (idx / history.length);
                     const affWon = match.winnerId === aff.id;
                     if (affWon) affH2HWins += recencyWeight;
                     totalH2HWeight += recencyWeight;
                 });
                 h2hProb = affH2HWins / totalH2HWeight;
+                // H2H weight scales with number of matches (max 25% at 3+ matches)
                 h2hWeight = Math.min(0.25, history.length * 0.08);
             }
+            
+            // 5. EXPERIENCE FACTOR (part of remaining weight)
             const affExperience = Math.min(1, aff.rounds / 50);
             const negExperience = Math.min(1, neg.rounds / 50);
             const expDiff = (affExperience - negExperience) * 0.1;
+            
+            // 6. QUALITY OF COMPETITION FACED
             const getAvgOppRating = (comp) => {
                 const oppRatings = Array.from(comp.opponents).map(o => 
                     state.competitors[o]?.rating || BASE_RATING
@@ -1515,27 +1818,38 @@
             };
             const affAvgOpp = getAvgOppRating(aff);
             const negAvgOpp = getAvgOppRating(neg);
+            // If aff has faced tougher competition, slight bonus
             const scheduleStrengthAdj = (affAvgOpp - negAvgOpp) / 1000;
+            
+            // ========== COMBINE ALL FACTORS ==========
+            // Weights: Elo 40%, Side 20%, Trend 15%, H2H variable (up to 25%), rest for adjustments
             const baseWeight = 1 - h2hWeight;
             let affWinProb = (
                 (eloProb * 0.40 * baseWeight) +
                 (sideProb * 0.20 * baseWeight) +
                 (trendProb * 0.15 * baseWeight) +
                 (h2hProb * h2hWeight) +
-                (0.5 * 0.25 * baseWeight) +
+                (0.5 * 0.25 * baseWeight) + // Base 50% for remaining weight
                 (expDiff * baseWeight) +
                 (scheduleStrengthAdj * baseWeight)
             );
+            
+            // Normalize to ensure it's a valid probability
             affWinProb = Math.max(0.02, Math.min(0.98, affWinProb));
             const negWinProb = 1 - affWinProb;
+            
+            // ========== UPDATE UI ==========
             el.h2hPrediction.classList.remove('hidden');
             el.h2hAffWinProb.textContent = `${Math.round(affWinProb * 100)}%`;
             el.h2hNegWinProb.textContent = `${Math.round(negWinProb * 100)}%`;
             el.h2hProbBarAff.style.width = `${affWinProb * 100}%`;
             el.h2hProbBarNeg.style.width = `${negWinProb * 100}%`;
+            
+            // Generate prediction text with reasoning
             const affName = aff.fullName || lookupFullName(aff.id) || aff.id;
             const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
             const ratingDiff = Math.abs(affRating - negRating);
+            
             let predictionText = '';
             if (Math.abs(affWinProb - 0.5) < 0.05) {
                 predictionText = "This is essentially a toss-up match";
@@ -1545,6 +1859,8 @@
                 const prob = Math.max(affWinProb, negWinProb);
                 const confidence = prob > 0.75 ? "heavily" : prob > 0.65 ? "solidly" : prob > 0.55 ? "moderately" : "slightly";
                 predictionText = `${favored} is ${confidence} favored on ${favoredSide}`;
+                
+                // Add reasoning
                 const reasons = [];
                 if (ratingDiff > 100) reasons.push(`${ratingDiff} Elo gap`);
                 if (history.length > 0) {
@@ -1561,29 +1877,39 @@
                 }
             }
             el.h2hPredictionText.textContent = predictionText;
+            
+            // Show matchup history
             renderMatchupHistory(aff, neg);
         };
         
         const renderMatchupHistory = (aff, neg) => {
             const matchupKey = [aff.id, neg.id].sort().join('::');
             const history = state.matchupHistory[matchupKey] || [];
+            
             el.h2hHistory.classList.remove('hidden');
+            
             if (history.length === 0) {
                 el.h2hHistoryContent.classList.add('hidden');
                 el.h2hNoHistory.classList.remove('hidden');
                 return;
             }
+            
             el.h2hNoHistory.classList.add('hidden');
             el.h2hHistoryContent.classList.remove('hidden');
+            
             const affName = aff.fullName || lookupFullName(aff.id) || aff.id;
             const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
+            
             el.h2hHistoryContent.innerHTML = history.map(match => {
                 const affWon = match.winnerId === aff.id && match.winnerSide === 'aff' || 
                                match.winnerId === aff.id && match.affId === aff.id;
+                const negWon = match.winnerId === neg.id;
                 
+                // Determine who was aff/neg in this specific match
                 const wasAffOnAff = match.affId === aff.id;
                 const winnerName = match.winnerId === aff.id ? affName : negName;
                 const winnerSide = match.winnerSide === 'aff' ? 'Aff' : 'Neg';
+                
                 return `
                     <div class="bg-white/5 rounded-lg p-3 flex items-center justify-between">
                         <div class="flex-1">
@@ -1605,6 +1931,7 @@
             }).join('');
         };
         
+        // H2H Event Listeners
         el.h2hBtn.addEventListener('click', openH2HModal);
         el.h2hClose.addEventListener('click', closeH2HModal);
         el.h2hModal.addEventListener('click', (e) => {
@@ -1612,6 +1939,7 @@
         });
         
         let h2hAffTimeout, h2hNegTimeout;
+        
         el.h2hAffSearch.addEventListener('input', (e) => {
             clearTimeout(h2hAffTimeout);
             h2hAffTimeout = setTimeout(() => {
@@ -1619,12 +1947,14 @@
                 renderH2HDropdown(el.h2hAffDropdown, results, 'aff');
             }, 150);
         });
+        
         el.h2hAffSearch.addEventListener('focus', () => {
             if (el.h2hAffSearch.value.length >= 2) {
                 const results = searchCompetitors(el.h2hAffSearch.value);
                 renderH2HDropdown(el.h2hAffDropdown, results, 'aff');
             }
         });
+        
         el.h2hNegSearch.addEventListener('input', (e) => {
             clearTimeout(h2hNegTimeout);
             h2hNegTimeout = setTimeout(() => {
@@ -1632,12 +1962,15 @@
                 renderH2HDropdown(el.h2hNegDropdown, results, 'neg');
             }, 150);
         });
+        
         el.h2hNegSearch.addEventListener('focus', () => {
             if (el.h2hNegSearch.value.length >= 2) {
                 const results = searchCompetitors(el.h2hNegSearch.value);
                 renderH2HDropdown(el.h2hNegDropdown, results, 'neg');
             }
         });
+        
+        // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             if (!el.h2hAffSearch.contains(e.target) && !el.h2hAffDropdown.contains(e.target)) {
                 el.h2hAffDropdown.classList.add('hidden');
@@ -1647,5 +1980,3 @@
             }
         });
     </script>
-</body>
-</html>
