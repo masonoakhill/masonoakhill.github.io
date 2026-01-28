@@ -423,29 +423,41 @@
             walkoversEnabled: true
         };
 
-        // Helpers
-        const expectedScore = (ratingA, ratingB) => 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+        // ==========================================
+        // 1. DEBUGGING UTILITIES (Must be first)
+        // ==========================================
+        const addDebugLog = (tournament, originalCode, resolvedName, method) => {
+            const container = document.getElementById('debugLogContent');
+            if (!container) return;
 
-        const getKFactor = (tournamentNum, isTop50) => {
-            const baseK = isTop50 ? 28 : BASE_K;
-            if (tournamentNum <= 3) return baseK * 1.25;
-            if (tournamentNum >= 8) return baseK * 0.75;
-            return baseK;
+            const isHarker = originalCode.toLowerCase().includes('harker');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${isHarker ? 'log-harker' : ''}`;
+            
+            entry.innerHTML = `
+                <span class="log-tourn truncate">${tournament || 'Global'}</span>
+                <span class="log-code truncate">${originalCode}</span>
+                <span class="log-arrow">→</span>
+                <span class="log-name truncate">${resolvedName || '???'}</span>
+                <span class="log-detail">${method}</span>
+            `;
+            
+            container.insertBefore(entry, container.firstChild);
+            
+            // Keep log size manageable
+            if (container.children.length > 200) {
+                container.removeChild(container.lastChild);
+            }
         };
 
-        const getSpeakerModifier = (speaks, isWin) => {
-            if (isWin) return speaks >= 29 ? 1.1 : 1.0;
-            return speaks >= 28.5 ? 0.9 : 1.0;
+        window.clearDebugLog = () => {
+            const container = document.getElementById('debugLogContent');
+            if (container) container.innerHTML = '';
         };
 
-        const normalizeName = (name) => {
-            if (!name) return '';
-            return name.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
-        };
-
-        const getCanonicalCode = (code) => state.codeAliases[code] || code;
-
-        // STRICT abbreviation matcher
+        // ==========================================
+        // 2. STRICT MATCHING LOGIC
+        // ==========================================
         const abbreviationMatchesName = (abbrev, fullName) => {
             if (!abbrev || !fullName) return false;
             const nameParts = fullName.trim().split(/\s+/);
@@ -456,123 +468,100 @@
             
             for (let i = 0; i < abbrev.length; i++) {
                 const char = abbrev[i];
+                // Check if char is uppercase (and matches start of a name part)
                 const isUpper = char.toUpperCase() !== char.toLowerCase() && char === char.toUpperCase();
                 
                 if (isUpper) {
-                    // Start of a new name part. Find the next part starting with this letter.
-                    let foundPart = false;
+                    // Find start of next name part matching this Initial
+                    let found = false;
                     while (namePartIndex < nameParts.length) {
                         const part = nameParts[namePartIndex];
                         if (part.charAt(0).toUpperCase() === char) {
-                            foundPart = true;
-                            charInPart = 1; // We consumed the first letter
-                            namePartIndex++; // Advance part index
+                            found = true;
+                            charInPart = 1; // Consumed first letter
+                            namePartIndex++; // Move to next part
                             break;
                         }
                         namePartIndex++;
                     }
-                    if (!foundPart) return false; // Initial didn't match any remaining name parts
+                    if (!found) return false;
                 } else {
-                    // Lowercase letter: MUST match the IMMEDIATE next character in the current part
-                    // Look back at the part we just matched
+                    // Lowercase: Must match IMMEDIATE next char in PREVIOUS matched part
                     const currentPartIndex = namePartIndex - 1;
                     if (currentPartIndex < 0) return false;
                     
                     const part = nameParts[currentPartIndex];
-                    
-                    // If we ran out of letters in the name, fail
                     if (charInPart >= part.length) return false;
                     
-                    // STRICT CHECK: The letter in the name MUST match the code letter
+                    // STRICT CHECK: 'h' in SSh must match 'h' in Shah
                     if (part.charAt(charInPart).toLowerCase() !== char.toLowerCase()) {
-                        return false; 
+                        return false;
                     }
                     charInPart++;
                 }
             }
             return true;
         };
-        
-        const extractAbbrevFromCode = (code) => {
-            if (!code) return '';
-            const parts = code.trim().split(/\s+/);
-            return parts.length < 2 ? '' : parts[parts.length - 1];
-        };
 
-        const extractSchoolFromCode = (code) => {
-            if (!code) return '';
-            const parts = code.trim().split(/\s+/);
-            return parts.length < 2 ? code : parts.slice(0, -1).join(' ');
-        };
+        // ==========================================
+        // 3. TOURNAMENT SCOPED LOOKUP
+        // ==========================================
+        const lookupFullNameForTournament = (code, tournamentName) => {
+            if (!code) return null;
+            const codeLower = code.toLowerCase();
 
-   // --- SCOPED TOURNAMENT LOOKUP ---
-    const lookupFullNameForTournament = (code, tournamentName) => {
-        if (!code) return null;
-        const codeLower = code.toLowerCase();
-
-        // 1. Check entries.csv for this specific tournament (Highest Priority)
-        if (state.tournamentEntriesMap[tournamentName]) {
-            const entry = state.tournamentEntriesMap[tournamentName][codeLower];
-            if (entry) {
-                // If the code is explicitly defined in the CSV, trust it 100%
-                // This catches manual fixes in CSVs
-                return entry.name;
-            }
-        }
-
-        // 2. Attempt Strict Abbreviation Match within this Tournament's Roster
-        const school = extractSchoolFromCode(code);
-        const abbrev = extractAbbrevFromCode(code); // e.g., "SSh"
-        
-        if (school && abbrev) {
-            const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
-            const entries = state.tournamentSchoolMap[tournamentSchoolKey] || [];
-            
-            let bestMatch = null;
-            let matchCount = 0;
-
-            for (const entry of entries) {
-                if (abbreviationMatchesName(abbrev, entry.name)) {
-                    bestMatch = entry.name;
-                    matchCount++;
-                    
-                    // Optimization: If code contains lowercase (specific), stop at first match
-                    // "SSh" is specific. "SS" is ambiguous.
-                    if (abbrev !== abbrev.toUpperCase()) {
-                        addDebugLog(tournamentName, code, entry.name, 'Strict Abbrev Match');
-                        return entry.name;
-                    }
+            // A. Check entries.csv for this specific tournament (Highest Priority)
+            if (state.tournamentEntriesMap[tournamentName]) {
+                const entry = state.tournamentEntriesMap[tournamentName][codeLower];
+                if (entry) {
+                    return entry.name; // Trust the CSV explicitly
                 }
             }
 
-            // If we found exactly one match for a generic code like "SS"
-            if (matchCount === 1) {
-                addDebugLog(tournamentName, code, bestMatch, 'Single Candidate Match');
-                return bestMatch;
-            }
+            // B. Attempt Strict Abbreviation Match within this Tournament's Roster
+            const school = extractSchoolFromCode(code);
+            const abbrev = extractAbbrevFromCode(code); // e.g., "SSh"
             
-            // If matchCount > 1 (Ambiguity), we usually return the first one, 
-            // but we log a warning.
-            if (matchCount > 1) {
-                addDebugLog(tournamentName, code, bestMatch, 'WARNING: Ambiguous Code');
-                return bestMatch; 
+            if (school && abbrev) {
+                const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
+                const entries = state.tournamentSchoolMap[tournamentSchoolKey] || [];
+                
+                let bestMatch = null;
+                let matchCount = 0;
+
+                for (const entry of entries) {
+                    if (abbreviationMatchesName(abbrev, entry.name)) {
+                        bestMatch = entry.name;
+                        matchCount++;
+                        
+                        // Optimization: If code contains lowercase (specific), stop at first match
+                        // "SSh" is specific. "SS" is ambiguous.
+                        if (abbrev !== abbrev.toUpperCase()) {
+                            addDebugLog(tournamentName, code, entry.name, 'Strict Abbrev Match');
+                            return entry.name;
+                        }
+                    }
+                }
+
+                if (matchCount === 1) {
+                    addDebugLog(tournamentName, code, bestMatch, 'Single Candidate');
+                    return bestMatch;
+                }
+                
+                if (matchCount > 1) {
+                    addDebugLog(tournamentName, code, bestMatch, 'WARNING: Ambiguous');
+                    return bestMatch; // Returns first found (standard convention)
+                }
             }
-        }
+            return null; // Don't fall back to global here, let getCompetitor handle it
+        };
 
-        // 3. Fallback to Global Cache (Last Resort)
-        // Only if the person wasn't found in the tournament roster at all
-        const globalName = lookupFullName(code);
-        if (globalName) {
-            // Don't log this every time to avoid spam, but it implies the person 
-            // wasn't in the entries file properly
-            return globalName;
-        }
-
-        return null;
-    };
-
+        // ==========================================
+        // 4. GLOBAL FALLBACK LOOKUP
+        // ==========================================
         const lookupFullName = (code) => {
             if (!code) return null;
+            // Check global cache
             if (state.codeToName[code]) return state.codeToName[code];
             
             const codeLower = code.toLowerCase();
@@ -580,98 +569,87 @@
                 if (key.toLowerCase() === codeLower) return value;
             }
             
-            const school = extractSchoolFromCode(code);
-            const abbrev = extractAbbrevFromCode(code);
-            if (!school || !abbrev) return null;
-            
-            const schoolKey = school.toLowerCase();
-            let entries = state.schoolEntriesMap[schoolKey];
-            
-            if (!entries || entries.length === 0) {
-                for (const [key, value] of Object.entries(state.schoolEntriesMap)) {
-                    if (key.startsWith(schoolKey) || schoolKey.startsWith(key)) {
-                        entries = value;
-                        break;
-                    }
-                }
-            }
-            
-            if (!entries || entries.length === 0) return null;
-            
-            for (const entry of entries) {
-                if (abbreviationMatchesName(abbrev, entry.name)) {
-                    state.codeToName[code] = entry.name;
-                    if (!state.abbrevToFullCode[code]) {
-                        state.abbrevToFullCode[code] = entry.fullCode;
-                    }
-                    return entry.name;
-                }
-            }
-            return null;
+            return null; // We removed the fuzzy logic from here to prevent pollution
         };
 
-    // --- UPDATED GET COMPETITOR ---
-    const getCompetitor = (id, tournamentName = null) => {
-        let resolvedFullName = null;
-        let resolvedFullCode = null;
-        let school = '';
-        
-        // 1. Try Tournament-Specific Resolution first
-        if (tournamentName) {
-            resolvedFullName = lookupFullNameForTournament(id, tournamentName);
-        }
-        
-        // 2. Global Fallback
-        if (!resolvedFullName) {
-            resolvedFullName = lookupFullName(id);
-        }
-
-        // Determine Canonical ID
-        let canonicalId = id; // Default to raw code
-        if (resolvedFullName) {
-            const normName = normalizeName(resolvedFullName);
-            if (state.nameToCanonicalCode[normName]) {
-                canonicalId = state.nameToCanonicalCode[normName];
-            } else {
-                // Create new canonical entry
-                state.nameToCanonicalCode[normName] = id;
+        // ==========================================
+        // 5. GET COMPETITOR (Main Entry Point)
+        // ==========================================
+        const getCompetitor = (id, tournamentName = null) => {
+            let resolvedFullName = null;
+            let resolvedFullCode = null;
+            let school = '';
+            
+            // Step 1: Try Tournament-Specific Resolution first
+            if (tournamentName) {
+                resolvedFullName = lookupFullNameForTournament(id, tournamentName);
+                
+                // If resolved, find the full code associated with that name in this tournament
+                if (resolvedFullName && state.tournamentEntriesMap[tournamentName]) {
+                    // Reverse search: Find the entry object that has this Name
+                    const entries = Object.values(state.tournamentEntriesMap[tournamentName]);
+                    const entry = entries.find(e => e.name === resolvedFullName);
+                    if (entry) resolvedFullCode = entry.fullCode;
+                }
             }
             
-            // LOGGING THE MERGE
-            if (canonicalId !== id) {
-                 // Only log if it's an interesting merge (not just finding itself)
-                 // and filter for Harker to help you debug
-                 if (id.toLowerCase().includes('harker')) {
-                     addDebugLog(tournamentName, id, state.competitors[canonicalId]?.fullName || resolvedFullName, 'Merged to Canonical');
-                 }
+            // Step 2: Global Fallback
+            if (!resolvedFullName) {
+                resolvedFullName = lookupFullName(id);
             }
-        }
+            if (!resolvedFullCode) {
+                resolvedFullCode = state.abbrevToFullCode[id] || id;
+            }
 
-        // Create/Retrieve Competitor Object
-        if (!state.competitors[canonicalId]) {
-            school = extractSchoolFromCode(id); // Simple extraction
-            state.competitors[canonicalId] = {
-                id: canonicalId,
-                fullName: resolvedFullName,
-                school: school,
-                allCodes: new Set([id]),
-                // ... rest of init
-                rating: BASE_RATING,
-                ratingHistory: [BASE_RATING],
-                tournaments: 0, rounds: 0, wins: 0, losses: 0,
-                affWins: 0, affLosses: 0, negWins: 0, negLosses: 0,
-                opponents: new Set(), opponentSchools: new Set(),
-                tournamentStats: {}, walkovers: 0, tournamentHistory: []
-            };
-        }
+            // Step 3: Determine Canonical ID
+            let canonicalId = id; // Default to raw code
+            if (resolvedFullName) {
+                const normName = normalizeName(resolvedFullName);
+                if (state.nameToCanonicalCode[normName]) {
+                    canonicalId = state.nameToCanonicalCode[normName];
+                } else {
+                    // Create new canonical entry
+                    canonicalId = resolvedFullCode || id;
+                    state.nameToCanonicalCode[normName] = canonicalId;
+                }
+                
+                // LOGGING: Only log interesting merges (like Harker)
+                if (canonicalId !== id && id.toLowerCase().includes('harker')) {
+                     addDebugLog(tournamentName, id, state.competitors[canonicalId]?.fullName || resolvedFullName, 'Merged to Canonical');
+                }
+                
+                school = extractSchoolFromCode(resolvedFullCode || id);
+            } else {
+                // If we still don't have a name, just use the code
+                canonicalId = getCanonicalCode(resolvedFullCode || id);
+                school = extractSchoolFromCode(canonicalId);
+            }
 
-        const comp = state.competitors[canonicalId];
-        comp.allCodes.add(id);
-        if (resolvedFullName && !comp.fullName) comp.fullName = resolvedFullName;
+            // Step 4: Create/Retrieve Competitor Object
+            if (!state.competitors[canonicalId]) {
+                state.competitors[canonicalId] = {
+                    id: canonicalId,
+                    fullName: resolvedFullName,
+                    school: school,
+                    allCodes: new Set([canonicalId]),
+                    rating: BASE_RATING,
+                    ratingHistory: [BASE_RATING],
+                    tournaments: 0, rounds: 0, wins: 0, losses: 0,
+                    affWins: 0, affLosses: 0, negWins: 0, negLosses: 0,
+                    opponents: new Set(), opponentSchools: new Set(),
+                    tournamentStats: {}, walkovers: 0, tournamentHistory: [],
+                    isTop50: false
+                };
+            }
+
+            const comp = state.competitors[canonicalId];
+            comp.allCodes.add(id);
+            if (resolvedFullCode && resolvedFullCode !== id) comp.allCodes.add(resolvedFullCode);
+            if (resolvedFullName && !comp.fullName) comp.fullName = resolvedFullName;
+            
+            return comp;
+        };
         
-        return comp;
-    };
-
         // Logging (console only now)
         const log = (msg) => console.log(msg);
         const clearLog = () => {};
