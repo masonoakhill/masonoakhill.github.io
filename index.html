@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LD Debate Rankings v2</title>
+    <title>LD Debate Rankings</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         * {
@@ -89,7 +89,7 @@
         <header class="mb-12">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings</h1>
+                    <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings v2</h1>
                     <p class="text-sm text-white/40 mt-1">TOC Circuit • 
                         <select id="seasonSelect" class="bg-transparent text-white/60 outline-none border-b border-white/20 hover:border-white/40 focus:border-white/60 transition-colors cursor-pointer">
                             <option value="2025-2026" class="bg-[#0a0a0f]">2025-2026</option>
@@ -324,6 +324,10 @@
             tournamentsStat: document.getElementById('stat-tournaments'),
             roundsStat: document.getElementById('stat-rounds'),
             exportBtn: document.getElementById('exportBtn'),
+            diversityPenalty: document.getElementById('diversityPenalty'),
+            walkoversEnabled: document.getElementById('walkoversEnabled'),
+            logSection: document.getElementById('logSection'),
+            logContent: document.getElementById('logContent'),
             emptyState: document.getElementById('emptyState'),
             rankingsContainer: document.getElementById('rankingsContainer'),
             searchInput: document.getElementById('searchInput'),
