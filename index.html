@@ -385,34 +385,50 @@
 
         const getCanonicalCode = (code) => state.codeAliases[code] || code;
 
+        // UPDATED: Stricter matching logic
         const abbreviationMatchesName = (abbrev, fullName) => {
-            if (!abbrev || !fullName) return false;
+            if (!abbrev || !fullName) return 0; // Return 0 for no match, score > 0 for match
             const nameParts = fullName.trim().split(/\s+/);
-            if (nameParts.length === 0) return false;
+            if (nameParts.length === 0) return 0;
             
             let namePartIndex = 0;
             let charInPart = 0;
+            let matchScore = 0; // Higher is better
             
             for (let i = 0; i < abbrev.length; i++) {
                 const char = abbrev[i];
                 const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
                 
                 if (isUpper) {
-                    if (namePartIndex >= nameParts.length) return false;
-                    const namePart = nameParts[namePartIndex];
-                    if (namePart.charAt(0).toUpperCase() !== char.toUpperCase()) return false;
-                    charInPart = 1;
-                    namePartIndex++;
+                    // Start of a new name part (e.g. 'S' in 'SSh')
+                    // Find the next name part starting with this letter
+                    let foundPart = false;
+                    while (namePartIndex < nameParts.length) {
+                        const namePart = nameParts[namePartIndex];
+                        if (namePart.charAt(0).toUpperCase() === char.toUpperCase()) {
+                            foundPart = true;
+                            charInPart = 1;
+                            namePartIndex++; // Move to next part for future upper/lower chars
+                            matchScore += 10; // Major points for First Initial
+                            break;
+                        }
+                        namePartIndex++;
+                    }
+                    if (!foundPart) return 0;
                 } else {
+                    // Continuation of current name part (e.g. 'h' in 'SSh')
                     const currentPartIndex = namePartIndex - 1;
-                    if (currentPartIndex < 0) return false;
+                    if (currentPartIndex < 0) return 0;
+                    
                     const namePart = nameParts[currentPartIndex];
-                    if (charInPart >= namePart.length) return false;
-                    if (namePart.charAt(charInPart).toLowerCase() !== char.toLowerCase()) return false;
+                    if (charInPart >= namePart.length) return 0;
+                    
+                    if (namePart.charAt(charInPart).toLowerCase() !== char.toLowerCase()) return 0;
                     charInPart++;
+                    matchScore += 5; // Points for specific lowercase match
                 }
             }
-            return true;
+            return matchScore;
         };
 
         const extractAbbrevFromCode = (code) => {
@@ -489,11 +505,13 @@
             return state.abbrevToFullCode[abbrevCode] || null;
         };
 
-        const lookupFullName = (code) => {
+             const lookupFullName = (code) => {
             if (!code) return null;
             if (state.codeToName[code]) return state.codeToName[code];
             
             const codeLower = code.toLowerCase();
+            
+            // Check cache/map
             for (const [key, value] of Object.entries(state.codeToName)) {
                 if (key.toLowerCase() === codeLower) return value;
             }
@@ -505,6 +523,7 @@
             const schoolKey = school.toLowerCase();
             let entries = state.schoolEntriesMap[schoolKey];
             
+            // Fallback for school name variations (e.g. "Harker" vs "The Harker School")
             if (!entries || entries.length === 0) {
                 for (const [key, value] of Object.entries(state.schoolEntriesMap)) {
                     if (key.startsWith(schoolKey) || schoolKey.startsWith(key)) {
@@ -516,15 +535,41 @@
             
             if (!entries || entries.length === 0) return null;
             
+            // FIND BEST MATCH (Fix for Harker SSh vs SSe)
+            let bestMatch = null;
+            let highestScore = -1;
+            
+            // Debug specific issue
+            const isDebugTarget = code.includes('SSh') || code.includes('SSe') || (schoolKey.includes('harker') && abbrev.startsWith('S'));
+
             for (const entry of entries) {
-                if (abbreviationMatchesName(abbrev, entry.name)) {
-                    state.codeToName[code] = entry.name;
-                    if (!state.abbrevToFullCode[code]) {
-                        state.abbrevToFullCode[code] = entry.fullCode;
+                const score = abbreviationMatchesName(abbrev, entry.name);
+                if (score > 0) {
+                    if (isDebugTarget) {
+                        console.log(`Debug Lookup: Code "${code}" (${abbrev}) vs Name "${entry.name}" -> Score: ${score}`);
                     }
-                    return entry.name;
+                    
+                    // Logic: Prefer higher score (more matched chars). 
+                    // Tie-breaker: If scores equal, prefer the one with FEWER total parts (closer fit?) 
+                    // or just take the first one (but with score we differentiate SSh from SS)
+                    if (score > highestScore) {
+                        highestScore = score;
+                        bestMatch = entry;
+                    }
                 }
             }
+
+            if (bestMatch) {
+                if (isDebugTarget) {
+                    console.log(`>>> WINNER for "${code}": ${bestMatch.name}`);
+                }
+                state.codeToName[code] = bestMatch.name;
+                if (!state.abbrevToFullCode[code]) {
+                    state.abbrevToFullCode[code] = bestMatch.fullCode;
+                }
+                return bestMatch.name;
+            }
+            
             return null;
         };
 
