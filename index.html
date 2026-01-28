@@ -445,6 +445,67 @@
             return parts.length < 2 ? code : parts.slice(0, -1).join(' ');
         };
 
+                // SCOPED lookup: Only looks at people actually AT this tournament
+        const lookupFullNameForTournament = (code, tournamentName) => {
+            if (!code) return null;
+            const codeLower = code.toLowerCase();
+
+            // 1. Exact Code Match in Entries (The Gold Standard)
+            // If the entries.csv says "Harker SSh" is "Sofia Shah", we believe it.
+            const tEntries = state.tournamentEntriesMap[tournamentName];
+            if (tEntries && tEntries[codeLower]) {
+                return tEntries[codeLower].name;
+            }
+            
+            // 2. Abbreviation Match (The Fallback)
+            // Only look at students registered for THIS tournament
+            const school = extractSchoolFromCode(code);
+            const abbrev = extractAbbrevFromCode(code); // e.g., "SSh"
+            
+            if (school && abbrev) {
+                const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
+                const schoolEntries = state.tournamentSchoolMap[tournamentSchoolKey];
+                
+                if (schoolEntries && schoolEntries.length > 0) {
+                    
+                    // Debugging for Harker specifically
+                    const isDebug = school.toLowerCase().includes('harker') && abbrev.startsWith('S');
+                    if (isDebug) console.log(`[${tournamentName}] Resolving ${code} (${abbrev})...`);
+
+                    let bestMatch = null;
+                    let matchesFound = 0;
+
+                    for (const entry of schoolEntries) {
+                        if (abbreviationMatchesName(abbrev, entry.name)) {
+                            if (isDebug) console.log(`  -> Match Candidate: ${entry.name}`);
+                            bestMatch = entry.name;
+                            matchesFound++;
+                            
+                            // Optimization: If we find a match that fits perfectly, 
+                            // check if it's "SSh" vs "SS"
+                            
+                            // Special Logic: If code has lowercase letters (SSh),
+                            // and we found a match, this is a HIGH QUALITY match.
+                            // If the code was just "SS", it might match multiple people.
+                            if (abbrev !== abbrev.toUpperCase()) {
+                                return entry.name; // Return immediately for specific codes
+                            }
+                        }
+                    }
+                    
+                    // If we found exactly one match, return it
+                    if (matchesFound === 1) return bestMatch;
+                    
+                    // If we found multiple (e.g. Code is "SS", Matches "Sanjith" and "Sofia"),
+                    // We default to the first one defined in the entries list (standard convention)
+                    if (matchesFound > 1) return bestMatch; 
+                }
+            }
+            
+            // 3. Last Resort: Global Lookup
+            // Only do this if we couldn't find ANYONE in the tournament roster
+            return lookupFullName(code);
+        };
         
         // Get the full code (e.g., "School John Doe") for an abbreviated code at a specific tournament
         const getFullCodeForTournament = (abbrevCode, tournamentName) => {
