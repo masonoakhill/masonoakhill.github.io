@@ -445,53 +445,6 @@
             return parts.length < 2 ? code : parts.slice(0, -1).join(' ');
         };
 
-        // STRICT abbreviation matcher
-        const abbreviationMatchesName = (abbrev, fullName) => {
-            if (!abbrev || !fullName) return false;
-            const nameParts = fullName.trim().split(/\s+/);
-            if (nameParts.length === 0) return false;
-            
-            let namePartIndex = 0;
-            let charInPart = 0;
-            
-            for (let i = 0; i < abbrev.length; i++) {
-                const char = abbrev[i];
-                const isUpper = char.toUpperCase() !== char.toLowerCase() && char === char.toUpperCase();
-                
-                if (isUpper) {
-                    // Start of a new name part. Find the next part starting with this letter.
-                    let foundPart = false;
-                    while (namePartIndex < nameParts.length) {
-                        const part = nameParts[namePartIndex];
-                        if (part.charAt(0).toUpperCase() === char) {
-                            foundPart = true;
-                            charInPart = 1; // We consumed the first letter
-                            namePartIndex++; // Advance part index
-                            break;
-                        }
-                        namePartIndex++;
-                    }
-                    if (!foundPart) return false; // Initial didn't match any remaining name parts
-                } else {
-                    // Lowercase letter: MUST match the IMMEDIATE next character in the current part
-                    // Look back at the part we just matched
-                    const currentPartIndex = namePartIndex - 1;
-                    if (currentPartIndex < 0) return false;
-                    
-                    const part = nameParts[currentPartIndex];
-                    
-                    // If we ran out of letters in the name, fail
-                    if (charInPart >= part.length) return false;
-                    
-                    // STRICT CHECK: The letter in the name MUST match the code letter
-                    if (part.charAt(charInPart).toLowerCase() !== char.toLowerCase()) {
-                        return false; 
-                    }
-                    charInPart++;
-                }
-            }
-            return true;
-        };
         
         // Get the full code (e.g., "School John Doe") for an abbreviated code at a specific tournament
         const getFullCodeForTournament = (abbrevCode, tournamentName) => {
