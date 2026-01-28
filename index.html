@@ -385,73 +385,36 @@
 
         const getCanonicalCode = (code) => state.codeAliases[code] || code;
 
-        // UPDATED: Now returns a score (higher is better) instead of true/false
         const abbreviationMatchesName = (abbrev, fullName) => {
-            if (!abbrev || !fullName) return 0;
+            if (!abbrev || !fullName) return false;
             const nameParts = fullName.trim().split(/\s+/);
-            if (nameParts.length === 0) return 0;
+            if (nameParts.length === 0) return false;
             
             let namePartIndex = 0;
             let charInPart = 0;
-            let totalScore = 0;
             
-            // Iterate through the abbreviation characters
             for (let i = 0; i < abbrev.length; i++) {
                 const char = abbrev[i];
-                // Check if this char is Uppercase (and not a symbol/number)
-                const isUpper = char.toUpperCase() !== char.toLowerCase() && char === char.toUpperCase();
+                const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
                 
                 if (isUpper) {
-                    // UPPERCASE: Must match the start of a name part
-                    let foundPart = false;
-                    
-                    // Look ahead for a name part starting with this letter
-                    // This allows skipping middle names if necessary
-                    let tempIndex = namePartIndex;
-                    while (tempIndex < nameParts.length) {
-                        const part = nameParts[tempIndex];
-                        if (part.charAt(0).toUpperCase() === char) {
-                            // Match found
-                            namePartIndex = tempIndex + 1; // Move to next part
-                            charInPart = 1; // We consumed the first char
-                            foundPart = true;
-                            totalScore += 10; // Big points for matching an initial
-                            break;
-                        }
-                        tempIndex++;
-                    }
-                    
-                    if (!foundPart) return 0; // Abbrev requires an initial that doesn't exist
+                    if (namePartIndex >= nameParts.length) return false;
+                    const namePart = nameParts[namePartIndex];
+                    if (namePart.charAt(0).toUpperCase() !== char.toUpperCase()) return false;
+                    charInPart = 1;
+                    namePartIndex++;
                 } else {
-                    // LOWERCASE: Must match the specific character in the CURRENT name part
-                    // We look at the part we just matched an Initial for (index - 1)
                     const currentPartIndex = namePartIndex - 1;
-                    
-                    if (currentPartIndex < 0) return 0; // Should be impossible if logic holds
-                    
-                    const part = nameParts[currentPartIndex];
-                    
-                    // If we've run out of characters in this name part, fail
-                    if (charInPart >= part.length) return 0;
-                    
-                    // Strict match check
-                    if (part.charAt(charInPart).toLowerCase() !== char.toLowerCase()) {
-                        return 0;
-                    }
-                    
+                    if (currentPartIndex < 0) return false;
+                    const namePart = nameParts[currentPartIndex];
+                    if (charInPart >= namePart.length) return false;
+                    if (namePart.charAt(charInPart).toLowerCase() !== char.toLowerCase()) return false;
                     charInPart++;
-                    totalScore += 5; // Points for matching specific lowercase details
                 }
             }
-            
-            // Bonus: Penalize if the name has many unused parts? 
-            // Actually, usually "SSh" is better for "Sofia Shah" (Score 25) 
-            // than "SS" is for "Sofia Shah" (Score 20).
-            // This scoring naturally handles the "SSh" vs "SSe" distinction.
-            
-            return totalScore;
+            return true;
         };
-        
+
         const extractAbbrevFromCode = (code) => {
             if (!code) return '';
             const parts = code.trim().split(/\s+/);
@@ -464,76 +427,268 @@
             return parts.length < 2 ? code : parts.slice(0, -1).join(' ');
         };
 
-        const lookupFullName = (code) => {
-            if (!code) return null;
-            if (state.codeToName[code]) return state.codeToName[code];
-            
-            const codeLower = code.toLowerCase();
-            
-            // 1. Direct Cache Lookup
-            for (const [key, value] of Object.entries(state.codeToName)) {
-                if (key.toLowerCase() === codeLower) return value;
-            }
-            
-            const school = extractSchoolFromCode(code);
-            const abbrev = extractAbbrevFromCode(code);
-            if (!school || !abbrev) return null;
-            
-            const schoolKey = school.toLowerCase();
-            let entries = state.schoolEntriesMap[schoolKey];
-            
-            // Fallback for partial school matches (e.g. "Harker" vs "The Harker School")
-            if (!entries || entries.length === 0) {
-                for (const [key, value] of Object.entries(state.schoolEntriesMap)) {
-                    if (key.startsWith(schoolKey) || schoolKey.startsWith(key)) {
-                        entries = value;
-                        break;
-                    }
-                }
-            }
-            
-            if (!entries || entries.length === 0) return null;
-            
-            // 2. Score-Based Resolution
-            // We want to find the entry that matches the code *best*, not just the first one.
-            let bestMatch = null;
-            let bestScore = 0;
-            
-            // Debugging specifically for the Harker case
-            const isDebug = code.includes('SSh') || (school.toLowerCase().includes('harker') && abbrev.startsWith('S'));
+// Replace these functions in your code:
 
-            for (const entry of entries) {
-                const score = abbreviationMatchesName(abbrev, entry.name);
-                
-                if (isDebug && score > 0) {
-                    console.log(`Matching '${code}': Candidate '${entry.name}' Score: ${score}`);
-                }
+// NEW: Score how well an abbreviation matches a name
+// Returns 0 if no match, higher = better match
+const getAbbreviationMatchScore = (abbrev, fullName, fullCode) => {
+    if (!abbreviationMatchesName(abbrev, fullName)) return 0;
+    
+    // Base score for matching
+    let score = 100;
+    
+    // Bonus if the abbreviation from the fullCode matches exactly
+    const codeAbbrev = extractAbbrevFromCode(fullCode);
+    if (codeAbbrev.toLowerCase() === abbrev.toLowerCase()) {
+        score += 500; // Strong preference for exact abbreviation match
+    }
+    
+    // Bonus for longer/more specific abbreviations
+    score += abbrev.length * 10;
+    
+    return score;
+};
 
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMatch = entry;
-                } else if (score === bestScore && score > 0) {
-                    // Tie-breaker: If scores are equal (e.g. 'SS' matches 'Sanjith Senthil' and 'Sofia Shah' equally),
-                    // we unfortunately have to rely on order or length.
-                    // Usually, specific codes like 'SSh' will score higher (25) than 'SS' (20) against Sofia.
+// NEW: Find the best matching entry when multiple match
+const findBestMatchingEntry = (abbrev, entries, lookupCode) => {
+    if (!entries || entries.length === 0) return null;
+    
+    // Score all entries
+    const scored = [];
+    for (const entry of entries) {
+        const score = getAbbreviationMatchScore(abbrev, entry.name, entry.fullCode);
+        if (score > 0) {
+            scored.push({ entry, score });
+        }
+    }
+    
+    if (scored.length === 0) return null;
+    if (scored.length === 1) return scored[0].entry;
+    
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score);
+    
+    // Check for exact fullCode match first (highest priority)
+    for (const { entry } of scored) {
+        if (entry.fullCode.toLowerCase() === lookupCode.toLowerCase()) {
+            return entry;
+        }
+    }
+    
+    // Check if top score is significantly better than second
+    if (scored[0].score > scored[1].score) {
+        return scored[0].entry;
+    }
+    
+    // If still ambiguous, warn but return best guess
+    console.warn(`[NameResolution] Ambiguous abbreviation "${abbrev}" for "${lookupCode}":`,
+        scored.map(s => `${s.entry.name} (${s.entry.fullCode}, score=${s.score})`).join(' vs '));
+    
+    return scored[0].entry;
+};
+
+// UPDATED: lookupFullNameForTournament with better disambiguation
+const lookupFullNameForTournament = (code, tournamentName) => {
+    if (!code) return null;
+    
+    // First try exact match in tournament entries
+    const tournamentEntries = state.tournamentEntriesMap[tournamentName];
+    if (tournamentEntries) {
+        const codeLower = code.toLowerCase();
+        if (tournamentEntries[codeLower]) {
+            return tournamentEntries[codeLower].name;
+        }
+        
+        // Try abbreviation match within this tournament only
+        const school = extractSchoolFromCode(code);
+        const abbrev = extractAbbrevFromCode(code);
+        if (school && abbrev) {
+            const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
+            const entries = state.tournamentSchoolMap[tournamentSchoolKey];
+            if (entries && entries.length > 0) {
+                const bestMatch = findBestMatchingEntry(abbrev, entries, code);
+                if (bestMatch) {
+                    return bestMatch.name;
                 }
             }
+        }
+    }
+    
+    // Fall back to global lookup
+    return lookupFullName(code);
+};
 
-            if (bestMatch) {
-                if (isDebug) {
-                    console.log(`>>> Selected '${bestMatch.name}' for '${code}' (Score: ${bestScore})`);
+        
+// UPDATED: getFullCodeForTournament with same disambiguation logic
+const getFullCodeForTournament = (abbrevCode, tournamentName) => {
+    if (!abbrevCode) return null;
+    
+    const tournamentEntries = state.tournamentEntriesMap[tournamentName];
+    if (tournamentEntries) {
+        const codeLower = abbrevCode.toLowerCase();
+        if (tournamentEntries[codeLower]) {
+            return tournamentEntries[codeLower].fullCode;
+        }
+        
+        // Try abbreviation match
+        const school = extractSchoolFromCode(abbrevCode);
+        const abbrev = extractAbbrevFromCode(abbrevCode);
+        if (school && abbrev) {
+            const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
+            const entries = state.tournamentSchoolMap[tournamentSchoolKey];
+            if (entries && entries.length > 0) {
+                const bestMatch = findBestMatchingEntry(abbrev, entries, abbrevCode);
+                if (bestMatch) {
+                    return bestMatch.fullCode;
                 }
-                
-                state.codeToName[code] = bestMatch.name;
-                
-                // Ensure we map back to the full canonical code if possible
-                if (!state.abbrevToFullCode[code]) {
-                    state.abbrevToFullCode[code] = bestMatch.fullCode;
-                }
-                return bestMatch.name;
+            }
+        }
+    }
+    
+    return state.abbrevToFullCode[abbrevCode] || null;
+};
+
+// UPDATED: lookupFullName with better disambiguation and safer caching
+const lookupFullName = (code) => {
+    if (!code) return null;
+    
+    // Exact match in cache
+    if (state.codeToName[code]) return state.codeToName[code];
+    
+    // Case-insensitive exact match
+    const codeLower = code.toLowerCase();
+    for (const [key, value] of Object.entries(state.codeToName)) {
+        if (key.toLowerCase() === codeLower) return value;
+    }
+    
+    const school = extractSchoolFromCode(code);
+    const abbrev = extractAbbrevFromCode(code);
+    if (!school || !abbrev) return null;
+    
+    const schoolKey = school.toLowerCase();
+    let entries = state.schoolEntriesMap[schoolKey];
+    
+    // Fuzzy school name matching
+    if (!entries || entries.length === 0) {
+        for (const [key, value] of Object.entries(state.schoolEntriesMap)) {
+            if (key.startsWith(schoolKey) || schoolKey.startsWith(key)) {
+                entries = value;
+                break;
+            }
+        }
+    }
+    
+    if (!entries || entries.length === 0) return null;
+    
+    // Use disambiguation function
+    const bestMatch = findBestMatchingEntry(abbrev, entries, code);
+    if (bestMatch) {
+        // CRITICAL FIX: Only cache if there's exactly ONE match
+        // This prevents caching ambiguous lookups that could be wrong at other tournaments
+        const allMatches = entries.filter(e => abbreviationMatchesName(abbrev, e.name));
+        if (allMatches.length === 1) {
+            state.codeToName[code] = bestMatch.name;
+            if (!state.abbrevToFullCode[code]) {
+                state.abbrevToFullCode[code] = bestMatch.fullCode;
+            }
+        }
+        // If multiple matches, don't cache - let each lookup be resolved fresh
+        return bestMatch.name;
+    }
+    
+    return null;
+};
+
+        const getCompetitor = (id, tournamentName = null) => {
+            // CRITICAL FIX: Use the FULL NAME as the primary identifier when available.
+            // This ensures that:
+            // 1. "Harker AS" (Ansh Sheth) at Tournament A is DIFFERENT from "Harker AS" (Anirudh Subramanian) at Tournament B
+            // 2. "Harker ASh" (Ansh Sheth) merges with "Peninsula AS" (Ansh Sheth) if they're the same person
+            
+            let resolvedFullName = null;
+            let resolvedFullCode = null;
+            let school = '';
+            
+            // Step 1: Try to resolve to a full name using tournament-specific lookup FIRST
+            if (tournamentName) {
+                resolvedFullName = lookupFullNameForTournament(id, tournamentName);
+                resolvedFullCode = getFullCodeForTournament(id, tournamentName);
             }
             
-            return null;
+            // Step 2: If no tournament-specific match, try global lookup
+            if (!resolvedFullName) {
+                resolvedFullName = lookupFullName(id);
+            }
+            if (!resolvedFullCode) {
+                resolvedFullCode = state.abbrevToFullCode[id] || id;
+            }
+            
+            // Step 3: Determine the canonical ID
+            // Priority: normalized full name (if available) > full code > original id
+            let canonicalId;
+            if (resolvedFullName) {
+                // Use normalized name as a key to find/create the canonical competitor
+                const normalizedName = normalizeName(resolvedFullName);
+                
+                // Check if we already have a competitor with this name
+                if (state.nameToCanonicalCode[normalizedName]) {
+                    canonicalId = state.nameToCanonicalCode[normalizedName];
+                } else {
+                    // Create a new canonical ID using the full code
+                    canonicalId = resolvedFullCode || id;
+                    state.nameToCanonicalCode[normalizedName] = canonicalId;
+                }
+                
+                // Extract school from the full code
+                if (resolvedFullCode && resolvedFullCode.toLowerCase().endsWith(resolvedFullName.toLowerCase())) {
+                    school = resolvedFullCode.slice(0, resolvedFullCode.length - resolvedFullName.length).trim();
+                } else {
+                    school = extractSchoolFromCode(resolvedFullCode || id);
+                }
+            } else {
+                // No name found - use code-based resolution
+                canonicalId = getCanonicalCode(resolvedFullCode || id);
+                school = extractSchoolFromCode(canonicalId);
+            }
+            
+            // Step 4: Create or retrieve competitor
+            if (!state.competitors[canonicalId]) {
+                state.competitors[canonicalId] = {
+                    id: canonicalId,
+                    school: school,
+                    fullName: resolvedFullName,
+                    allCodes: new Set([canonicalId]),
+                    rating: BASE_RATING,
+                    tournaments: 0,
+                    rounds: 0,
+                    wins: 0,
+                    losses: 0,
+                    affWins: 0,
+                    affLosses: 0,
+                    negWins: 0,
+                    negLosses: 0,
+                    isTop50: false,
+                    opponents: new Set(),
+                    opponentSchools: new Set(),
+                    walkovers: 0,
+                    tournamentHistory: [],
+                    tournamentStats: {}, 
+                    ratingHistory: [BASE_RATING]
+                };
+            }
+            
+            // Track all codes used
+            state.competitors[canonicalId].allCodes.add(id);
+            if (resolvedFullCode && resolvedFullCode !== id) {
+                state.competitors[canonicalId].allCodes.add(resolvedFullCode);
+            }
+            
+            // Update fullName if we found one and don't have it yet
+            if (resolvedFullName && !state.competitors[canonicalId].fullName) {
+                state.competitors[canonicalId].fullName = resolvedFullName;
+            }
+            
+            return state.competitors[canonicalId];
         };
 
         // Logging (console only now)
