@@ -374,13 +374,8 @@
         };
 
         const getSpeakerModifier = (speaks, isWin) => {
-            if (isWin) {
-                if (speaks >= 29) return 1.1;
-                return 1.0;
-            } else {
-                if (speaks >= 28.5) return 0.9;
-                return 1.0;
-            }
+            if (isWin) return speaks >= 29 ? 1.1 : 1.0;
+            return speaks >= 28.5 ? 0.9 : 1.0;
         };
 
         const normalizeName = (name) => {
@@ -392,38 +387,32 @@
 
         const abbreviationMatchesName = (abbrev, fullName) => {
             if (!abbrev || !fullName) return false;
+            const nameParts = fullName.trim().split(/\s+/);
+            if (nameParts.length === 0) return false;
             
-            const cleanAbbrev = abbrev.replace(/[^a-zA-Z]/g, '');
-            const cleanName = fullName.replace(/[^a-zA-Z\s]/g, '');
-            const nameParts = cleanName.trim().split(/\s+/);
+            let namePartIndex = 0;
+            let charInPart = 0;
             
-            if (nameParts.length < 2 || cleanAbbrev.length < 2) return false;
-
-            // Strict Rules to prevent false merges
-            
-            // 1. Exact Initials Match
-            const initials = nameParts.map(p => p[0].toUpperCase()).join('');
-            if (cleanAbbrev.toUpperCase() === initials) return true;
-
-            // 2. First Initial + Last Name Prefix
-            const firstName = nameParts[0];
-            const lastName = nameParts[nameParts.length - 1];
-            
-            // Hardcoded exception for Harker SSh / Sanjith Senthil collision
-            if (cleanAbbrev === 'SSh' && lastName.toLowerCase().startsWith('sent')) return false;
-
-            if (cleanAbbrev[0].toUpperCase() === firstName[0].toUpperCase()) {
-                const suffix = cleanAbbrev.slice(1).toLowerCase();
-                const lastNameLower = lastName.toLowerCase();
+            for (let i = 0; i < abbrev.length; i++) {
+                const char = abbrev[i];
+                const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
                 
-                if (suffix.length > lastNameLower.length) return false;
-                
-                if (lastNameLower.startsWith(suffix)) {
-                    return true;
+                if (isUpper) {
+                    if (namePartIndex >= nameParts.length) return false;
+                    const namePart = nameParts[namePartIndex];
+                    if (namePart.charAt(0).toUpperCase() !== char.toUpperCase()) return false;
+                    charInPart = 1;
+                    namePartIndex++;
+                } else {
+                    const currentPartIndex = namePartIndex - 1;
+                    if (currentPartIndex < 0) return false;
+                    const namePart = nameParts[currentPartIndex];
+                    if (charInPart >= namePart.length) return false;
+                    if (namePart.charAt(charInPart).toLowerCase() !== char.toLowerCase()) return false;
+                    charInPart++;
                 }
             }
-            
-            return false;
+            return true;
         };
 
         const extractAbbrevFromCode = (code) => {
@@ -540,6 +529,11 @@
         };
 
         const getCompetitor = (id, tournamentName = null) => {
+            // CRITICAL FIX: Use the FULL NAME as the primary identifier when available.
+            // This ensures that:
+            // 1. "Harker AS" (Ansh Sheth) at Tournament A is DIFFERENT from "Harker AS" (Anirudh Subramanian) at Tournament B
+            // 2. "Harker ASh" (Ansh Sheth) merges with "Peninsula AS" (Ansh Sheth) if they're the same person
+            
             let resolvedFullName = null;
             let resolvedFullCode = null;
             let school = '';
@@ -626,7 +620,7 @@
             return state.competitors[canonicalId];
         };
 
-        // Logging
+        // Logging (console only now)
         const log = (msg) => console.log(msg);
         const clearLog = () => {};
         const showLog = () => {};
@@ -797,37 +791,39 @@
         };
 
         const buildMergeMappings = () => {
-            // Group all codes (full and abbreviated) by their resolved normalized name
-            const nameToCodesList = {};
+            // Build a map of full codes to their resolved names
+            // Only merge FULL codes (like "Harker Ansh Sheth") that have the same name
+            // Do NOT merge abbreviated codes directly - those are resolved per-tournament
             
-            // 1. Process global FULL codes
-            for (const [code, name] of Object.entries(state.codeToName)) {
-                const normName = normalizeName(name);
-                if (!normName) continue;
-                if (!nameToCodesList[normName]) nameToCodesList[normName] = new Set();
-                nameToCodesList[normName].add(code);
-            }
-
-            // 2. Process tournament-specific mappings (crucial for linking "Harker SS" to "Harker Sanjith Senthil")
-            for (const [tName, entries] of Object.entries(state.tournamentEntriesMap)) {
-                for (const [code, entry] of Object.entries(entries)) {
-                    const normName = normalizeName(entry.name);
-                    if (!normName) continue;
-                    if (!nameToCodesList[normName]) nameToCodesList[normName] = new Set();
-                    // Add both the abbreviated code (key) and full code
-                    nameToCodesList[normName].add(entry.fullCode); 
+            const nameToFullCodesList = {};
+            
+            // Only use codeToName which maps FULL codes to names
+            for (const [fullCode, name] of Object.entries(state.codeToName)) {
+                const normalizedName = normalizeName(name);
+                if (!normalizedName) continue;
+                
+                // Only include full codes (codes that contain a full name, not abbreviations)
+                // Full codes typically have more than 2 parts and the last part isn't all caps
+                const parts = fullCode.trim().split(/\s+/);
+                const lastPart = parts[parts.length - 1];
+                const isAbbreviation = lastPart.length <= 4 && lastPart === lastPart.toUpperCase();
+                
+                // Skip abbreviated codes - they should be resolved per-tournament
+                if (isAbbreviation) continue;
+                
+                if (!nameToFullCodesList[normalizedName]) nameToFullCodesList[normalizedName] = [];
+                if (!nameToFullCodesList[normalizedName].includes(fullCode)) {
+                    nameToFullCodesList[normalizedName].push(fullCode);
                 }
             }
             
             let mergeCount = 0;
-            for (const [normalizedName, codesSet] of Object.entries(nameToCodesList)) {
-                const codes = Array.from(codesSet);
+            for (const [normalizedName, codes] of Object.entries(nameToFullCodesList)) {
                 if (codes.length <= 1) continue;
                 
-                // Sort to find canonical: longest first (most descriptive), then alphabetical
-                codes.sort((a, b) => b.length - a.length || a.localeCompare(b));
-                const canonicalCode = codes[0]; // Use longest code as canonical (e.g. "Harker Sanjith Senthil")
-                
+                // Sort by length (shorter first) then alphabetically
+                codes.sort((a, b) => a.length - b.length || a.localeCompare(b));
+                const canonicalCode = codes[0];
                 state.nameToCanonicalCode[normalizedName] = canonicalCode;
                 
                 for (const code of codes) {
@@ -836,12 +832,7 @@
                         mergeCount++;
                     }
                 }
-                if (codes.length > 1) {
-                    if (canonicalCode.includes('Harker')) {
-                        console.log(`Debug Merge: ${codes.join(' + ')} merged because they normalized to "${normalizedName}"`);
-                    }
-                    log(`  Merging: ${codes.join(' + ')} → "${state.codeToName[canonicalCode] || normalizedName}"`);
-                }
+                log(`  Merging: ${codes.join(' + ')} → "${state.codeToName[canonicalCode]}"`);
             }
             return mergeCount;
         };
@@ -1074,6 +1065,11 @@
                     await new Promise(r => setTimeout(r, 1000));
                 } else {
                     updateLoading('Loading from manifest...');
+                    console.log('Manifest loaded:', manifest);
+                    if (manifest.data && manifest.data[season]) {
+                        console.log('Season data:', manifest.data[season]);
+                        console.log('Tournament order from manifest:', manifest.data[season].tournamentOrder);
+                    }
                 }
 
                 const tournaments = await discoverTournaments(season, manifest);
@@ -1129,20 +1125,72 @@
                     })
                 );
                 
-                // Process entries first
+                // Process entries first - in the order specified by manifest
                 let totalEntries = 0;
-                for (const result of fetchResults) {
-                    if (result.type === 'entries' && result.text) {
-                        const mappings = parseEntriesFile(result.text, result.tournament);
-                        totalEntries += mappings.length;
+                
+                // HARDCODED tournament order from original processing log - THIS IS CRITICAL FOR MATCHING RESULTS
+                const CORRECT_TOURNAMENT_ORDER = [
+                    "LaCosta", "BlueKey", "TOCDigital1", "StMarks", "Heritage Hall",
+                    "CollegePrep", "DowlingCatholic", "Emory", "Alta", "Greenhill",
+                    "Badgerland", "LonghornClassic", "Peninsula", "HarvardWestlake",
+                    "Princeton", "AppleValley", "Meadows", "NSDSO_Online", "Loyola",
+                    "Grapevine", "IsidoreNewman", "MidAmerica", "Yale", "Bronx",
+                    "Glenbrooks", "Damus", "Blake", "JackHowe", "NanoNagle"
+                ];
+                
+                // Get tournament order from manifest, or use hardcoded order, or use the order tournaments appear
+                let tournamentOrder;
+                if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder && manifest.data[season].tournamentOrder.length > 0) {
+                    tournamentOrder = [...manifest.data[season].tournamentOrder];
+                    console.log('Using tournament order from manifest');
+                } else {
+                    // Use hardcoded order for 2025-2026
+                    tournamentOrder = [...CORRECT_TOURNAMENT_ORDER];
+                    console.log('Using hardcoded tournament order');
+                }
+                
+                // Add any tournaments that exist but aren't in the order list
+                const orderSet = new Set(tournamentOrder);
+                for (const t of tournaments) {
+                    if (!orderSet.has(t.name)) {
+                        tournamentOrder.push(t.name);
                     }
                 }
                 
-                // Also process pre-loaded entries content
-                for (const tournament of tournaments) {
-                    if (tournament.entriesContent) {
+                console.log('Tournament processing order:', tournamentOrder);
+                log(`Processing ${tournamentOrder.length} tournaments in order: ${tournamentOrder.slice(0, 5).join(', ')}...`);
+                
+                // Create a map for quick tournament lookup
+                const tournamentByName = {};
+                for (const t of tournaments) {
+                    tournamentByName[t.name] = t;
+                }
+                
+                // Build map of fetched entries
+                const entryResultsByTournament = {};
+                for (const result of fetchResults) {
+                    if (result.type === 'entries' && result.text) {
+                        entryResultsByTournament[result.tournament] = result;
+                    }
+                }
+                
+                // Process entries in the specified order (avoid duplicates)
+                const processedEntries = new Set();
+                for (const tName of tournamentOrder) {
+                    if (processedEntries.has(tName)) continue;
+                    
+                    const tournament = tournamentByName[tName];
+                    
+                    // Prefer pre-loaded entriesContent, fall back to fetched
+                    if (tournament && tournament.entriesContent) {
                         const mappings = parseEntriesFile(tournament.entriesContent, tournament.name);
                         totalEntries += mappings.length;
+                        processedEntries.add(tName);
+                    } else if (entryResultsByTournament[tName]) {
+                        const result = entryResultsByTournament[tName];
+                        const mappings = parseEntriesFile(result.text, result.tournament);
+                        totalEntries += mappings.length;
+                        processedEntries.add(tName);
                     }
                 }
                 
@@ -1169,23 +1217,10 @@
                     }
                 }
                 
-                // Process tournaments
-                // Sort tournaments to ensure chronological processing (critical for Elo)
-                // We rely on the manifest order if available, otherwise we try to sort by date heuristics or keep alphabetical as fallback
-                const sortedTournaments = Object.keys(tournamentFiles);
-                if (manifest && manifest.data && manifest.data[season]) {
-                    const manifestOrder = manifest.data[season].tournaments.map(t => t.name);
-                    sortedTournaments.sort((a, b) => {
-                        const idxA = manifestOrder.indexOf(a);
-                        const idxB = manifestOrder.indexOf(b);
-                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                        return 0;
-                    });
-                }
-
-                for (const tName of sortedTournaments) {
+                // Process tournaments in the order specified by manifest for deterministic results
+                for (const tName of tournamentOrder) {
                     const tFiles = tournamentFiles[tName];
-                    const tournament = tFiles.data;
+                    if (!tFiles) continue; // Skip if no files for this tournament
                     let bidLevel = determineBidLevel(tName) || 'quarters';
                     
                     const prelims = (tFiles.prelims || []).sort((a, b) => getRoundNumber(a.filename) - getRoundNumber(b.filename));
@@ -1372,6 +1407,196 @@
             }
         };
 
+        const renderStats = () => {
+            el.competitorsStat.textContent = Object.keys(state.competitors).length;
+            el.tournamentsStat.textContent = state.tournaments.length;
+            el.roundsStat.textContent = Object.values(state.competitors).reduce((s, c) => s + c.rounds, 0);
+        };
+
+        const renderRankings = (searchQuery = '') => {
+            const allComps = Object.values(state.competitors).sort((a, b) => b.rating - a.rating);
+            
+            let comps;
+            let isSearching = searchQuery.trim().length > 0;
+            
+            if (isSearching) {
+                const query = searchQuery.toLowerCase().trim();
+                comps = allComps.filter(comp => {
+                    // Search by full name
+                    const fullName = comp.fullName || lookupFullName(comp.id) || '';
+                    if (fullName.toLowerCase().includes(query)) return true;
+                    
+                    // Search by code/id
+                    if (comp.id.toLowerCase().includes(query)) return true;
+                    
+                    // Search by school
+                    if (comp.school.toLowerCase().includes(query)) return true;
+                    
+                    // Search by any of their codes
+                    if (comp.allCodes) {
+                        for (const code of comp.allCodes) {
+                            if (code.toLowerCase().includes(query)) return true;
+                        }
+                    }
+                    
+                    return false;
+                });
+                
+                // Update title
+                el.rankingsTitle.textContent = `Search Results (${comps.length} found)`;
+            } else {
+                comps = allComps.slice(0, 50);
+                el.rankingsTitle.textContent = 'Top 50 Rankings';
+            }
+            
+            if (comps.length === 0) {
+                el.emptyState.classList.remove('hidden');
+                el.rankingsContainer.classList.add('hidden');
+                return;
+            }
+            
+            el.emptyState.classList.add('hidden');
+            el.rankingsContainer.classList.remove('hidden');
+            el.rankingsContainer.innerHTML = '';
+            
+            comps.forEach((comp, index) => {
+                // Get actual rank among ALL competitors
+                const actualRank = allComps.findIndex(c => c.id === comp.id) + 1;
+                
+                let displayName = comp.fullName || lookupFullName(comp.id);
+                if (!displayName && comp.allCodes) {
+                    for (const code of comp.allCodes) {
+                        displayName = lookupFullName(code);
+                        if (displayName) break;
+                    }
+                }
+                displayName = displayName || comp.school;
+
+                const oppRatings = Array.from(comp.opponents).map(o => state.competitors[o]?.rating || BASE_RATING);
+                const avgOpp = Math.round(oppRatings.reduce((a, b) => a + b, 0) / (oppRatings.length || 1));
+                const winRate = comp.rounds > 0 ? ((comp.wins / comp.rounds) * 100).toFixed(1) : 0;
+                const ratingGap = Math.round(comp.rating) - avgOpp;
+                
+                // Helper calculation for display
+                comp.affRounds = comp.affWins + comp.affLosses;
+                comp.negRounds = comp.negWins + comp.negLosses;
+
+                // Peak rating
+                const peakRating = Math.round(Math.max(...comp.ratingHistory));
+                
+                // Badge colors based on actual rank
+                let badgeClass = 'bg-white/10 text-white/60';
+                if (actualRank === 1) badgeClass = 'bg-yellow-500/20 text-yellow-400';
+                else if (actualRank === 2) badgeClass = 'bg-gray-400/20 text-gray-300';
+                else if (actualRank === 3) badgeClass = 'bg-amber-600/20 text-amber-500';
+
+                const row = document.createElement('div');
+                row.className = 'competitor-row';
+                row.innerHTML = `
+                    <div class="flex items-center gap-4 px-6 py-4 cursor-pointer select-none" onclick="toggleDropdown(${index})">
+                        <div class="rank-badge ${badgeClass}">${actualRank}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium text-white truncate">${displayName}</div>
+                            <div class="text-xs text-white/30 truncate">${comp.id}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-semibold text-white tabular-nums">${Math.round(comp.rating)}</div>
+                            <div class="text-xs text-white/30">${comp.wins}-${comp.losses}</div>
+                        </div>
+                        <svg class="chevron w-4 h-4 text-white/20" id="chevron-${index}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="dropdown-content px-6 pb-4" id="dropdown-${index}">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-white/5">
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Win Rate</div>
+                                <div class="text-sm font-medium text-white mt-1">${winRate}%</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Peak Rating</div>
+                                <div class="text-sm font-medium text-white mt-1">${peakRating}</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Avg Opponent</div>
+                                <div class="text-sm font-medium ${ratingGap > 150 ? 'text-orange-400' : ratingGap < -100 ? 'text-green-400' : 'text-white'} mt-1">${avgOpp}</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Tournaments</div>
+                                <div class="text-sm font-medium text-white mt-1">${comp.tournaments}</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Total Rounds</div>
+                                <div class="text-sm font-medium text-white mt-1">${comp.rounds}</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Schools Faced</div>
+                                <div class="text-sm font-medium text-white mt-1">${comp.opponentSchools.size}</div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Aff Win Rate</div>
+                                <div class="text-sm font-medium text-white mt-1">${comp.affRounds > 0 ? Math.round((comp.affWins/comp.affRounds)*100) : 0}% <span class="text-xs text-white/30">(${comp.affWins}-${comp.affLosses})</span></div>
+                            </div>
+                            <div class="bg-white/5 rounded-lg p-3">
+                                <div class="text-[10px] text-white/30 uppercase tracking-wider">Neg Win Rate</div>
+                                <div class="text-sm font-medium text-white mt-1">${comp.negRounds > 0 ? Math.round((comp.negWins/comp.negRounds)*100) : 0}% <span class="text-xs text-white/30">(${comp.negWins}-${comp.negLosses})</span></div>
+                            </div>
+                        </div>
+                        ${Object.keys(comp.tournamentStats || {}).length > 0 ? `
+                        <div class="mt-4">
+                            <div class="text-[10px] text-white/30 uppercase tracking-wider mb-2">Tournament Performance</div>
+                            <div class="grid grid-cols-1 gap-1">
+                                ${Object.entries(comp.tournamentStats).map(([tName, stats]) => `
+                                    <div class="flex items-center justify-between bg-white/5 rounded px-3 py-2 text-xs">
+                                        <div class="font-medium text-white/70">${tName}</div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="text-white/40"><span class="text-white">${stats.pWins}-${stats.pLosses}</span></div>
+                                            ${stats.maxElim ? 
+                                                `<div class="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-[10px] uppercase tracking-wide font-semibold">${stats.maxElim}</div>` 
+                                                : '<div class="text-white/20 text-[10px]">PRELIMS</div>'}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${comp.allCodes && comp.allCodes.size > 1 ? `
+                        <div class="mt-3 text-xs text-white/30">
+                            <span class="text-white/50">Also competed as:</span> ${Array.from(comp.allCodes).filter(c => c !== comp.id).join(', ')}
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                el.rankingsContainer.appendChild(row);
+            });
+        };
+
+        window.toggleDropdown = (index) => {
+            const dropdown = document.getElementById(`dropdown-${index}`);
+            const chevron = document.getElementById(`chevron-${index}`);
+            dropdown.classList.toggle('open');
+            chevron.classList.toggle('open');
+        };
+
+        const exportRankings = () => {
+            const comps = Object.values(state.competitors).sort((a, b) => b.rating - a.rating);
+            const csvContent = [
+                'Rank,Competitor,FullName,School,AllCodes,Rating,Wins,Losses,Tournaments,Rounds,AvgOppRating',
+                ...comps.map((c, i) => {
+                    const oppRatings = Array.from(c.opponents).map(o => state.competitors[o]?.rating || BASE_RATING);
+                    const avgOpp = Math.round(oppRatings.reduce((a, b) => a + b, 0) / (oppRatings.length || 1));
+                    const allCodes = c.allCodes ? Array.from(c.allCodes).join('; ') : c.id;
+                    const fullName = c.fullName || lookupFullName(c.id) || '';
+                    return `${i + 1},"${c.id}","${fullName}","${c.school}","${allCodes}",${Math.round(c.rating)},${c.wins},${c.losses},${c.tournaments},${c.rounds},${avgOpp}`;
+                })
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ld_rankings_${el.seasonSelect.value}.csv`;
+            a.click();
+        };
+
         // Event Listeners
         el.exportBtn.addEventListener('click', exportRankings);
         
@@ -1420,6 +1645,291 @@
                 renderRankings();
             }
         });
+        
+
+        
+        // Head to Head functionality
+        const openH2HModal = () => {
+            el.h2hModal.classList.remove('hidden');
+            el.h2hModal.classList.add('flex');
+            state.h2hSelection = { aff: null, neg: null };
+            el.h2hAffSearch.value = '';
+            el.h2hNegSearch.value = '';
+            el.h2hAffSelected.classList.add('hidden');
+            el.h2hNegSelected.classList.add('hidden');
+            el.h2hPrediction.classList.add('hidden');
+            el.h2hHistory.classList.add('hidden');
+        };
+        
+        const closeH2HModal = () => {
+            el.h2hModal.classList.add('hidden');
+            el.h2hModal.classList.remove('flex');
+            el.h2hAffDropdown.classList.add('hidden');
+            el.h2hNegDropdown.classList.add('hidden');
+        };
+        
+        const searchCompetitors = (query) => {
+            if (!query || query.length < 2) return [];
+            const q = query.toLowerCase();
+            return Object.values(state.competitors)
+                .filter(comp => {
+                    const fullName = comp.fullName || lookupFullName(comp.id) || '';
+                    if (fullName.toLowerCase().includes(q)) return true;
+                    if (comp.id.toLowerCase().includes(q)) return true;
+                    if (comp.school.toLowerCase().includes(q)) return true;
+                    return false;
+                })
+                .sort((a, b) => b.rating - a.rating)
+                .slice(0, 10);
+        };
+        
+        const renderH2HDropdown = (dropdown, results, side) => {
+            if (results.length === 0) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            dropdown.innerHTML = results.map(comp => {
+                const fullName = comp.fullName || lookupFullName(comp.id) || comp.id;
+                return `
+                    <div class="px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors" data-id="${comp.id}" data-side="${side}">
+                        <div class="font-medium text-white text-sm">${fullName}</div>
+                        <div class="text-xs text-white/40">${comp.id} • ${Math.round(comp.rating)}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            dropdown.classList.remove('hidden');
+            
+            // Add click handlers
+            dropdown.querySelectorAll('[data-id]').forEach(item => {
+                item.addEventListener('click', () => {
+                    const compId = item.dataset.id;
+                    const itemSide = item.dataset.side;
+                    selectH2HCompetitor(compId, itemSide);
+                });
+            });
+        };
+        
+        const selectH2HCompetitor = (compId, side) => {
+            const comp = state.competitors[compId];
+            if (!comp) return;
+            
+            const fullName = comp.fullName || lookupFullName(comp.id) || comp.id;
+            state.h2hSelection[side] = comp;
+            
+            if (side === 'aff') {
+                el.h2hAffSearch.value = fullName;
+                el.h2hAffDropdown.classList.add('hidden');
+                el.h2hAffSelected.classList.remove('hidden');
+                el.h2hAffName.textContent = fullName;
+                el.h2hAffCode.textContent = comp.id;
+                el.h2hAffRating.textContent = Math.round(comp.rating);
+                el.h2hAffRecord.textContent = `${comp.wins}-${comp.losses}`;
+            } else {
+                el.h2hNegSearch.value = fullName;
+                el.h2hNegDropdown.classList.add('hidden');
+                el.h2hNegSelected.classList.remove('hidden');
+                el.h2hNegName.textContent = fullName;
+                el.h2hNegCode.textContent = comp.id;
+                el.h2hNegRating.textContent = Math.round(comp.rating);
+                el.h2hNegRecord.textContent = `${comp.wins}-${comp.losses}`;
+            }
+            
+            updateH2HPrediction();
+        };
+        
+        const updateH2HPrediction = () => {
+            const aff = state.h2hSelection.aff;
+            const neg = state.h2hSelection.neg;
+            
+            if (!aff || !neg) {
+                el.h2hPrediction.classList.add('hidden');
+                el.h2hHistory.classList.add('hidden');
+                return;
+            }
+            
+            // ========== SOPHISTICATED H2H PREDICTION ALGORITHM ==========
+            
+            // 1. BASE ELO PROBABILITY (40% weight)
+            const affRating = aff.rating;
+            const negRating = neg.rating;
+            const eloProb = expectedScore(affRating, negRating);
+            
+            // 2. SIDE-SPECIFIC PERFORMANCE (20% weight)
+            // How well does aff perform ON AFF, and how well does neg perform ON NEG?
+            const affOnAffWinRate = aff.affRounds >= 3 ? aff.affWins / aff.affRounds : 0.5;
+            const negOnNegWinRate = neg.negRounds >= 3 ? neg.negWins / neg.negRounds : 0.5;
+            // Normalize to probability advantage
+            const sideProb = 0.5 + ((affOnAffWinRate - 0.5) * 0.5) - ((negOnNegWinRate - 0.5) * 0.5);
+            
+            // 3. RECENT FORM / WIN TRENDS (15% weight)
+            // Look at last 10 rounds from rating history to determine momentum
+            const getRecentTrend = (comp) => {
+                const history = comp.ratingHistory || [BASE_RATING];
+                if (history.length < 3) return 0;
+                const recent = history.slice(-10);
+                const firstHalf = recent.slice(0, Math.floor(recent.length / 2));
+                const secondHalf = recent.slice(Math.floor(recent.length / 2));
+                const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+                const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+                // Return momentum as a value between -1 (declining) and 1 (improving)
+                return Math.max(-1, Math.min(1, (secondAvg - firstAvg) / 100));
+            };
+            const affTrend = getRecentTrend(aff);
+            const negTrend = getRecentTrend(neg);
+            const trendProb = 0.5 + ((affTrend - negTrend) * 0.25);
+            
+            // 4. HEAD-TO-HEAD HISTORY (25% weight if they've faced each other)
+            const matchupKey = [aff.id, neg.id].sort().join('::');
+            const history = state.matchupHistory[matchupKey] || [];
+            let h2hProb = 0.5;
+            let h2hWeight = 0;
+            
+            if (history.length > 0) {
+                // Calculate h2h record with recency weighting
+                let affH2HWins = 0;
+                let totalH2HWeight = 0;
+                history.forEach((match, idx) => {
+                    // More recent matches weighted higher
+                    const recencyWeight = 1 + (idx / history.length);
+                    const affWon = match.winnerId === aff.id;
+                    if (affWon) affH2HWins += recencyWeight;
+                    totalH2HWeight += recencyWeight;
+                });
+                h2hProb = affH2HWins / totalH2HWeight;
+                // H2H weight scales with number of matches (max 25% at 3+ matches)
+                h2hWeight = Math.min(0.25, history.length * 0.08);
+            }
+            
+            // 5. EXPERIENCE FACTOR (part of remaining weight)
+            const affExperience = Math.min(1, aff.rounds / 50);
+            const negExperience = Math.min(1, neg.rounds / 50);
+            const expDiff = (affExperience - negExperience) * 0.1;
+            
+            // 6. QUALITY OF COMPETITION FACED
+            const getAvgOppRating = (comp) => {
+                const oppRatings = Array.from(comp.opponents).map(o => 
+                    state.competitors[o]?.rating || BASE_RATING
+                );
+                return oppRatings.length > 0 
+                    ? oppRatings.reduce((a, b) => a + b, 0) / oppRatings.length 
+                    : BASE_RATING;
+            };
+            const affAvgOpp = getAvgOppRating(aff);
+            const negAvgOpp = getAvgOppRating(neg);
+            // If aff has faced tougher competition, slight bonus
+            const scheduleStrengthAdj = (affAvgOpp - negAvgOpp) / 1000;
+            
+            // ========== COMBINE ALL FACTORS ==========
+            // Weights: Elo 40%, Side 20%, Trend 15%, H2H variable (up to 25%), rest for adjustments
+            const baseWeight = 1 - h2hWeight;
+            let affWinProb = (
+                (eloProb * 0.40 * baseWeight) +
+                (sideProb * 0.20 * baseWeight) +
+                (trendProb * 0.15 * baseWeight) +
+                (h2hProb * h2hWeight) +
+                (0.5 * 0.25 * baseWeight) + // Base 50% for remaining weight
+                (expDiff * baseWeight) +
+                (scheduleStrengthAdj * baseWeight)
+            );
+            
+            // Normalize to ensure it's a valid probability
+            affWinProb = Math.max(0.02, Math.min(0.98, affWinProb));
+            const negWinProb = 1 - affWinProb;
+            
+            // ========== UPDATE UI ==========
+            el.h2hPrediction.classList.remove('hidden');
+            el.h2hAffWinProb.textContent = `${Math.round(affWinProb * 100)}%`;
+            el.h2hNegWinProb.textContent = `${Math.round(negWinProb * 100)}%`;
+            el.h2hProbBarAff.style.width = `${affWinProb * 100}%`;
+            el.h2hProbBarNeg.style.width = `${negWinProb * 100}%`;
+            
+            // Generate prediction text with reasoning
+            const affName = aff.fullName || lookupFullName(aff.id) || aff.id;
+            const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
+            const ratingDiff = Math.abs(affRating - negRating);
+            
+            let predictionText = '';
+            if (Math.abs(affWinProb - 0.5) < 0.05) {
+                predictionText = "This is essentially a toss-up match";
+            } else {
+                const favored = affWinProb > 0.5 ? affName : negName;
+                const favoredSide = affWinProb > 0.5 ? 'Aff' : 'Neg';
+                const prob = Math.max(affWinProb, negWinProb);
+                const confidence = prob > 0.75 ? "heavily" : prob > 0.65 ? "solidly" : prob > 0.55 ? "moderately" : "slightly";
+                predictionText = `${favored} is ${confidence} favored on ${favoredSide}`;
+                
+                // Add reasoning
+                const reasons = [];
+                if (ratingDiff > 100) reasons.push(`${ratingDiff} Elo gap`);
+                if (history.length > 0) {
+                    const affWins = history.filter(m => m.winnerId === aff.id).length;
+                    const negWins = history.length - affWins;
+                    reasons.push(`H2H: ${affWins}-${negWins}`);
+                }
+                if (Math.abs(affTrend - negTrend) > 0.3) {
+                    const trending = affTrend > negTrend ? affName.split(' ')[0] : negName.split(' ')[0];
+                    reasons.push(`${trending} trending up`);
+                }
+                if (reasons.length > 0) {
+                    predictionText += ` (${reasons.join(', ')})`;
+                }
+            }
+            el.h2hPredictionText.textContent = predictionText;
+            
+            // Show matchup history
+            renderMatchupHistory(aff, neg);
+        };
+        
+        const renderMatchupHistory = (aff, neg) => {
+            const matchupKey = [aff.id, neg.id].sort().join('::');
+            const history = state.matchupHistory[matchupKey] || [];
+            
+            el.h2hHistory.classList.remove('hidden');
+            
+            if (history.length === 0) {
+                el.h2hHistoryContent.classList.add('hidden');
+                el.h2hNoHistory.classList.remove('hidden');
+                return;
+            }
+            
+            el.h2hNoHistory.classList.add('hidden');
+            el.h2hHistoryContent.classList.remove('hidden');
+            
+            const affName = aff.fullName || lookupFullName(aff.id) || aff.id;
+            const negName = neg.fullName || lookupFullName(neg.id) || neg.id;
+            
+            el.h2hHistoryContent.innerHTML = history.map(match => {
+                const affWon = match.winnerId === aff.id && match.winnerSide === 'aff' || 
+                               match.winnerId === aff.id && match.affId === aff.id;
+                const negWon = match.winnerId === neg.id;
+                
+                // Determine who was aff/neg in this specific match
+                const wasAffOnAff = match.affId === aff.id;
+                const winnerName = match.winnerId === aff.id ? affName : negName;
+                const winnerSide = match.winnerSide === 'aff' ? 'Aff' : 'Neg';
+                
+                return `
+                    <div class="bg-white/5 rounded-lg p-3 flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-white">${match.tournament}</div>
+                            <div class="text-xs text-white/40">${match.round}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm">
+                                <span class="${wasAffOnAff ? 'text-blue-400' : 'text-red-400'}">${affName.split(' ')[0]}</span>
+                                <span class="text-white/30 mx-1">vs</span>
+                                <span class="${wasAffOnAff ? 'text-red-400' : 'text-blue-400'}">${negName.split(' ')[0]}</span>
+                            </div>
+                            <div class="text-xs ${match.winnerId === aff.id ? 'text-blue-400' : 'text-red-400'} font-medium">
+                                ${winnerName.split(' ')[0]} won (${winnerSide})
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
         
         // H2H Event Listeners
         el.h2hBtn.addEventListener('click', openH2HModal);
@@ -1470,5 +1980,3 @@
             }
         });
     </script>
-</body>
-</html>
