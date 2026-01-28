@@ -505,97 +505,71 @@
             return parts.length < 2 ? code : parts.slice(0, -1).join(' ');
         };
 
-                // SCOPED lookup: Only looks at people actually AT this tournament
-        const lookupFullNameForTournament = (code, tournamentName) => {
-            if (!code) return null;
-            const codeLower = code.toLowerCase();
+   // --- SCOPED TOURNAMENT LOOKUP ---
+    const lookupFullNameForTournament = (code, tournamentName) => {
+        if (!code) return null;
+        const codeLower = code.toLowerCase();
 
-            // 1. Exact Code Match in Entries (The Gold Standard)
-            // If the entries.csv says "Harker SSh" is "Sofia Shah", we believe it.
-            const tEntries = state.tournamentEntriesMap[tournamentName];
-            if (tEntries && tEntries[codeLower]) {
-                return tEntries[codeLower].name;
+        // 1. Check entries.csv for this specific tournament (Highest Priority)
+        if (state.tournamentEntriesMap[tournamentName]) {
+            const entry = state.tournamentEntriesMap[tournamentName][codeLower];
+            if (entry) {
+                // If the code is explicitly defined in the CSV, trust it 100%
+                // This catches manual fixes in CSVs
+                return entry.name;
             }
-            
-            // 2. Abbreviation Match (The Fallback)
-            // Only look at students registered for THIS tournament
-            const school = extractSchoolFromCode(code);
-            const abbrev = extractAbbrevFromCode(code); // e.g., "SSh"
-            
-            if (school && abbrev) {
-                const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
-                const schoolEntries = state.tournamentSchoolMap[tournamentSchoolKey];
-                
-                if (schoolEntries && schoolEntries.length > 0) {
-                    
-                    // Debugging for Harker specifically
-                    const isDebug = school.toLowerCase().includes('harker') && abbrev.startsWith('S');
-                    if (isDebug) console.log(`[${tournamentName}] Resolving ${code} (${abbrev})...`);
+        }
 
-                    let bestMatch = null;
-                    let matchesFound = 0;
-
-                    for (const entry of schoolEntries) {
-                        if (abbreviationMatchesName(abbrev, entry.name)) {
-                            if (isDebug) console.log(`  -> Match Candidate: ${entry.name}`);
-                            bestMatch = entry.name;
-                            matchesFound++;
-                            
-                            // Optimization: If we find a match that fits perfectly, 
-                            // check if it's "SSh" vs "SS"
-                            
-                            // Special Logic: If code has lowercase letters (SSh),
-                            // and we found a match, this is a HIGH QUALITY match.
-                            // If the code was just "SS", it might match multiple people.
-                            if (abbrev !== abbrev.toUpperCase()) {
-                                return entry.name; // Return immediately for specific codes
-                            }
-                        }
-                    }
-                    
-                    // If we found exactly one match, return it
-                    if (matchesFound === 1) return bestMatch;
-                    
-                    // If we found multiple (e.g. Code is "SS", Matches "Sanjith" and "Sofia"),
-                    // We default to the first one defined in the entries list (standard convention)
-                    if (matchesFound > 1) return bestMatch; 
-                }
-            }
-            
-            // 3. Last Resort: Global Lookup
-            // Only do this if we couldn't find ANYONE in the tournament roster
-            return lookupFullName(code);
-        };
+        // 2. Attempt Strict Abbreviation Match within this Tournament's Roster
+        const school = extractSchoolFromCode(code);
+        const abbrev = extractAbbrevFromCode(code); // e.g., "SSh"
         
-        // Get the full code (e.g., "School John Doe") for an abbreviated code at a specific tournament
-        const getFullCodeForTournament = (abbrevCode, tournamentName) => {
-            if (!abbrevCode) return null;
+        if (school && abbrev) {
+            const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
+            const entries = state.tournamentSchoolMap[tournamentSchoolKey] || [];
             
-            const tournamentEntries = state.tournamentEntriesMap[tournamentName];
-            if (tournamentEntries) {
-                const codeLower = abbrevCode.toLowerCase();
-                if (tournamentEntries[codeLower]) {
-                    return tournamentEntries[codeLower].fullCode;
-                }
-                
-                // Try abbreviation match
-                const school = extractSchoolFromCode(abbrevCode);
-                const abbrev = extractAbbrevFromCode(abbrevCode);
-                if (school && abbrev) {
-                    const tournamentSchoolKey = `${tournamentName}::${school.toLowerCase()}`;
-                    const entries = state.tournamentSchoolMap[tournamentSchoolKey];
-                    if (entries && entries.length > 0) {
-                        for (const entry of entries) {
-                            if (abbreviationMatchesName(abbrev, entry.name)) {
-                                return entry.fullCode;
-                            }
-                        }
+            let bestMatch = null;
+            let matchCount = 0;
+
+            for (const entry of entries) {
+                if (abbreviationMatchesName(abbrev, entry.name)) {
+                    bestMatch = entry.name;
+                    matchCount++;
+                    
+                    // Optimization: If code contains lowercase (specific), stop at first match
+                    // "SSh" is specific. "SS" is ambiguous.
+                    if (abbrev !== abbrev.toUpperCase()) {
+                        addDebugLog(tournamentName, code, entry.name, 'Strict Abbrev Match');
+                        return entry.name;
                     }
                 }
             }
+
+            // If we found exactly one match for a generic code like "SS"
+            if (matchCount === 1) {
+                addDebugLog(tournamentName, code, bestMatch, 'Single Candidate Match');
+                return bestMatch;
+            }
             
-            return state.abbrevToFullCode[abbrevCode] || null;
-        };
+            // If matchCount > 1 (Ambiguity), we usually return the first one, 
+            // but we log a warning.
+            if (matchCount > 1) {
+                addDebugLog(tournamentName, code, bestMatch, 'WARNING: Ambiguous Code');
+                return bestMatch; 
+            }
+        }
+
+        // 3. Fallback to Global Cache (Last Resort)
+        // Only if the person wasn't found in the tournament roster at all
+        const globalName = lookupFullName(code);
+        if (globalName) {
+            // Don't log this every time to avoid spam, but it implies the person 
+            // wasn't in the entries file properly
+            return globalName;
+        }
+
+        return null;
+    };
 
         const lookupFullName = (code) => {
             if (!code) return null;
@@ -636,97 +610,67 @@
             return null;
         };
 
-        const getCompetitor = (id, tournamentName = null) => {
-            // CRITICAL FIX: Use the FULL NAME as the primary identifier when available.
-            // This ensures that:
-            // 1. "Harker AS" (Ansh Sheth) at Tournament A is DIFFERENT from "Harker AS" (Anirudh Subramanian) at Tournament B
-            // 2. "Harker ASh" (Ansh Sheth) merges with "Peninsula AS" (Ansh Sheth) if they're the same person
-            
-            let resolvedFullName = null;
-            let resolvedFullCode = null;
-            let school = '';
-            
-            // Step 1: Try to resolve to a full name using tournament-specific lookup FIRST
-            if (tournamentName) {
-                resolvedFullName = lookupFullNameForTournament(id, tournamentName);
-                resolvedFullCode = getFullCodeForTournament(id, tournamentName);
-            }
-            
-            // Step 2: If no tournament-specific match, try global lookup
-            if (!resolvedFullName) {
-                resolvedFullName = lookupFullName(id);
-            }
-            if (!resolvedFullCode) {
-                resolvedFullCode = state.abbrevToFullCode[id] || id;
-            }
-            
-            // Step 3: Determine the canonical ID
-            // Priority: normalized full name (if available) > full code > original id
-            let canonicalId;
-            if (resolvedFullName) {
-                // Use normalized name as a key to find/create the canonical competitor
-                const normalizedName = normalizeName(resolvedFullName);
-                
-                // Check if we already have a competitor with this name
-                if (state.nameToCanonicalCode[normalizedName]) {
-                    canonicalId = state.nameToCanonicalCode[normalizedName];
-                } else {
-                    // Create a new canonical ID using the full code
-                    canonicalId = resolvedFullCode || id;
-                    state.nameToCanonicalCode[normalizedName] = canonicalId;
-                }
-                
-                // Extract school from the full code
-                if (resolvedFullCode && resolvedFullCode.toLowerCase().endsWith(resolvedFullName.toLowerCase())) {
-                    school = resolvedFullCode.slice(0, resolvedFullCode.length - resolvedFullName.length).trim();
-                } else {
-                    school = extractSchoolFromCode(resolvedFullCode || id);
-                }
+    // --- UPDATED GET COMPETITOR ---
+    const getCompetitor = (id, tournamentName = null) => {
+        let resolvedFullName = null;
+        let resolvedFullCode = null;
+        let school = '';
+        
+        // 1. Try Tournament-Specific Resolution first
+        if (tournamentName) {
+            resolvedFullName = lookupFullNameForTournament(id, tournamentName);
+        }
+        
+        // 2. Global Fallback
+        if (!resolvedFullName) {
+            resolvedFullName = lookupFullName(id);
+        }
+
+        // Determine Canonical ID
+        let canonicalId = id; // Default to raw code
+        if (resolvedFullName) {
+            const normName = normalizeName(resolvedFullName);
+            if (state.nameToCanonicalCode[normName]) {
+                canonicalId = state.nameToCanonicalCode[normName];
             } else {
-                // No name found - use code-based resolution
-                canonicalId = getCanonicalCode(resolvedFullCode || id);
-                school = extractSchoolFromCode(canonicalId);
+                // Create new canonical entry
+                state.nameToCanonicalCode[normName] = id;
             }
             
-            // Step 4: Create or retrieve competitor
-            if (!state.competitors[canonicalId]) {
-                state.competitors[canonicalId] = {
-                    id: canonicalId,
-                    school: school,
-                    fullName: resolvedFullName,
-                    allCodes: new Set([canonicalId]),
-                    rating: BASE_RATING,
-                    tournaments: 0,
-                    rounds: 0,
-                    wins: 0,
-                    losses: 0,
-                    affWins: 0,
-                    affLosses: 0,
-                    negWins: 0,
-                    negLosses: 0,
-                    isTop50: false,
-                    opponents: new Set(),
-                    opponentSchools: new Set(),
-                    walkovers: 0,
-                    tournamentHistory: [],
-                    tournamentStats: {}, 
-                    ratingHistory: [BASE_RATING]
-                };
+            // LOGGING THE MERGE
+            if (canonicalId !== id) {
+                 // Only log if it's an interesting merge (not just finding itself)
+                 // and filter for Harker to help you debug
+                 if (id.toLowerCase().includes('harker')) {
+                     addDebugLog(tournamentName, id, state.competitors[canonicalId]?.fullName || resolvedFullName, 'Merged to Canonical');
+                 }
             }
-            
-            // Track all codes used
-            state.competitors[canonicalId].allCodes.add(id);
-            if (resolvedFullCode && resolvedFullCode !== id) {
-                state.competitors[canonicalId].allCodes.add(resolvedFullCode);
-            }
-            
-            // Update fullName if we found one and don't have it yet
-            if (resolvedFullName && !state.competitors[canonicalId].fullName) {
-                state.competitors[canonicalId].fullName = resolvedFullName;
-            }
-            
-            return state.competitors[canonicalId];
-        };
+        }
+
+        // Create/Retrieve Competitor Object
+        if (!state.competitors[canonicalId]) {
+            school = extractSchoolFromCode(id); // Simple extraction
+            state.competitors[canonicalId] = {
+                id: canonicalId,
+                fullName: resolvedFullName,
+                school: school,
+                allCodes: new Set([id]),
+                // ... rest of init
+                rating: BASE_RATING,
+                ratingHistory: [BASE_RATING],
+                tournaments: 0, rounds: 0, wins: 0, losses: 0,
+                affWins: 0, affLosses: 0, negWins: 0, negLosses: 0,
+                opponents: new Set(), opponentSchools: new Set(),
+                tournamentStats: {}, walkovers: 0, tournamentHistory: []
+            };
+        }
+
+        const comp = state.competitors[canonicalId];
+        comp.allCodes.add(id);
+        if (resolvedFullName && !comp.fullName) comp.fullName = resolvedFullName;
+        
+        return comp;
+    };
 
         // Logging (console only now)
         const log = (msg) => console.log(msg);
