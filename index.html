@@ -275,6 +275,66 @@
 
     </div>
 
+    <!-- Debug UI -->
+<div id="debugPanel" class="fixed bottom-0 left-0 right-0 h-64 bg-[#0a0a0f] border-t border-white/20 transform transition-transform duration-300 z-50 flex flex-col font-mono text-xs shadow-2xl">
+    <div class="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
+        <div class="flex items-center gap-4">
+            <h3 class="font-bold text-yellow-400">Resolution Debugger</h3>
+            <span class="text-white/40">Watch how codes are mapped to names</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="clearDebugLog()" class="text-white/40 hover:text-white">Clear</button>
+            <button onclick="document.getElementById('debugPanel').classList.toggle('translate-y-full')" class="text-white/40 hover:text-white">
+                ▼
+            </button>
+        </div>
+    </div>
+    <div id="debugLogContent" class="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+        <!-- Logs go here -->
+    </div>
+</div>
+
+       // --- DEBUGGING UTILS ---
+    const addDebugLog = (tournament, originalCode, resolvedName, method) => {
+        const container = document.getElementById('debugLogContent');
+        if (!container) return;
+
+        const isHarker = originalCode.toLowerCase().includes('harker');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${isHarker ? 'log-harker' : ''}`;
+        
+        entry.innerHTML = `
+            <span class="log-tourn truncate">${tournament || 'Global'}</span>
+            <span class="log-code truncate">${originalCode}</span>
+            <span class="log-arrow">→</span>
+            <span class="log-name truncate">${resolvedName || '???'}</span>
+            <span class="log-detail">${method}</span>
+        `;
+        
+        container.insertBefore(entry, container.firstChild);
+        
+        // Keep log size manageable
+        if (container.children.length > 200) {
+            container.removeChild(container.lastChild);
+        }
+    };
+
+    window.clearDebugLog = () => {
+        document.getElementById('debugLogContent').innerHTML = '';
+    };
+
+<style>
+    .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
+    .log-time { color: rgba(255,255,255,0.3); min-width: 60px; }
+    .log-tourn { color: #60a5fa; min-width: 120px; }
+    .log-code { color: #f472b6; min-width: 100px; }
+    .log-arrow { color: rgba(255,255,255,0.3); }
+    .log-name { color: #4ade80; font-weight: bold; }
+    .log-detail { color: rgba(255,255,255,0.5); margin-left: auto; }
+    .log-warn { background: rgba(239, 68, 68, 0.1); }
+    .log-harker { background: rgba(234, 179, 8, 0.1); border-left: 2px solid #eab308; }
+</style>
+
     <script>
         // State
         const state = {
