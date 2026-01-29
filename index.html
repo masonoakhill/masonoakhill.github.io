@@ -80,76 +80,7 @@
             transform: translateY(0);
         }
         
-        /* Debug Panel Styles */
-        .debug-tab.active {
-            color: rgba(255, 255, 255, 0.9);
-            border-color: rgb(59, 130, 246);
-        }
-        .debug-tab-content {
-            min-height: 200px;
-        }
-        #debugContent.open {
-            height: 400px;
-        }
-        .merge-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 8px;
-            padding: 12px;
-            transition: all 0.2s ease;
-        }
-        .merge-card:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-        .merge-card.warning {
-            border-color: rgba(251, 191, 36, 0.3);
-            background: rgba(251, 191, 36, 0.05);
-        }
-        .merge-card.error {
-            border-color: rgba(239, 68, 68, 0.3);
-            background: rgba(239, 68, 68, 0.05);
-        }
-        .code-tag {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-family: monospace;
-            margin: 2px;
-        }
-        .code-tag.new {
-            background: rgba(34, 197, 94, 0.2);
-            color: rgb(134, 239, 172);
-        }
-        .code-tag.existing {
-            background: rgba(59, 130, 246, 0.2);
-            color: rgb(147, 197, 253);
-        }
-        .timeline-entry {
-            padding: 4px 8px;
-            border-left: 2px solid rgba(255, 255, 255, 0.1);
-            margin-left: 8px;
-        }
-        .timeline-entry.merge {
-            border-color: rgba(59, 130, 246, 0.5);
-        }
-        .timeline-entry.new {
-            border-color: rgba(34, 197, 94, 0.5);
-        }
-        .timeline-entry.unresolved {
-            border-color: rgba(239, 68, 68, 0.5);
-        }
-        .timeline-entry.tournament {
-            border-color: rgba(168, 85, 247, 0.5);
-            background: rgba(168, 85, 247, 0.1);
-            margin-left: 0;
-            border-left-width: 4px;
-            font-weight: 600;
-        }
-    </style>
-</head>
+
 <body class="min-h-screen bg-[#0a0a0f] text-white antialiased">
     <div class="fixed inset-0 bg-gradient-to-br from-blue-950/30 via-transparent to-purple-950/20 pointer-events-none"></div>
     
@@ -339,70 +270,6 @@
         </div>
     </div>
 
-    <!-- Debug Panel -->
-    <div id="debugPanel" class="fixed bottom-0 left-0 right-0 z-40">
-        <!-- Toggle Bar -->
-        <div id="debugToggle" class="bg-[#1a1a24] border-t border-white/10 px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-yellow-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-                    <path d="m9 12 2 2 4-4"/>
-                </svg>
-                <span class="text-sm font-medium text-white/80">Debug Panel</span>
-                <div class="flex items-center gap-2">
-                    <span id="debugMergeCount" class="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full">0 merges</span>
-                    <span id="debugUnresolvedCount" class="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full hidden">0 unresolved</span>
-                </div>
-            </div>
-            <svg id="debugChevron" class="w-5 h-5 text-white/40 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
-        </div>
-        
-        <!-- Debug Content -->
-        <div id="debugContent" class="bg-[#0d0d14] border-t border-white/5 max-h-[60vh] overflow-hidden transition-all duration-300" style="height: 0;">
-            <div class="h-full flex flex-col">
-                <!-- Tabs -->
-                <div class="flex border-b border-white/10 px-4">
-                    <button class="debug-tab active px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="merges">
-                        Merges
-                    </button>
-                    <button class="debug-tab px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="unresolved">
-                        Unresolved
-                    </button>
-                    <button class="debug-tab px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="competitors">
-                        All Competitors
-                    </button>
-                    <button class="debug-tab px-4 py-3 text-sm font-medium text-white/60 border-b-2 border-transparent hover:text-white/80 transition-colors" data-tab="timeline">
-                        Resolution Log
-                    </button>
-                </div>
-                
-                <!-- Search Bar -->
-                <div class="px-4 py-3 border-b border-white/5">
-                    <div class="relative">
-                        <input type="text" id="debugSearch" placeholder="Search names, codes, tournaments..." 
-                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 pl-10 text-sm text-white placeholder-white/30 outline-none focus:border-white/30 transition-colors">
-                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    </div>
-                </div>
-                
-                <!-- Tab Content -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
-                    <!-- Merges Tab -->
-                    <div id="debugTabMerges" class="debug-tab-content">
-                        <div id="debugMergesList" class="space-y-2"></div>
-                        <div id="debugMergesEmpty" class="hidden text-center py-8 text-white/30">
-                            <p class="text-sm">No merges to display</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Unresolved Tab -->
-                    <div id="debugTabUnresolved" class="debug-tab-content hidden">
-                        <div id="debugUnresolvedList" class="space-y-3"></div>
-                        <div id="debugUnresolvedEmpty" class="hidden text-center py-8 text-white/30">
-                            <svg class="w-10 h-10 mx-auto mb-2 text-green-500/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            <p class="text-sm text-green-400/60">All codes resolved successfully!</p>
-                        </div>
-                    </div>
                     
                     <!-- All Competitors Tab -->
                     <div id="debugTabCompetitors" class="debug-tab-content hidden">
