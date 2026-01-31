@@ -643,7 +643,6 @@
     },
     "2024-2025": {
       "tournamentOrder": [
-        "USC",
         "Loyola",
         "NSDSO_Online",
         "Grapevine",
@@ -693,6 +692,7 @@
         "TOCDigital2",
         "MillardNorth",
         "TOCDigital3",
+        "USC",
         "TOC",
         "Cypress",
         "Delores",
@@ -702,26 +702,6 @@
         "UniversityOfHouston"
       ],
       "tournaments": [
-        {
-          "name": "USC",
-          "path": "2024-2025/LD/USC",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (12).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
         {
           "name": "Loyola",
           "path": "2024-2025/LD/Loyola",
@@ -1689,6 +1669,26 @@
             "Tabroom-1227760.csv",
             "Tabroom-1227761.csv",
             "Tabroom-1227762.csv"
+          ]
+        },
+        {
+          "name": "USC",
+          "path": "2024-2025/LD/USC",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (12).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
           ]
         },
         {
