@@ -5,10 +5,8 @@
  * Run this script from the root of your repository:
  *   node generate-manifest.js
  * 
- * It will scan the folder structure and create manifest.json
- * with all tournaments, entries files, and round files.
- * 
- * Tournaments are sorted chronologically based on Tournament_Dates.csv
+ * Expects Tournament_Dates.csv in the root directory OR in {season}/LD/
+ * Format: Date,Name (or tab-separated)
  */
 
 const fs = require('fs');
@@ -24,6 +22,9 @@ const MONTHS = {
     'january': 0, 'february': 1, 'march': 2, 'april': 3,
     'may': 4, 'june': 5, 'july': 6, 'august': 7,
     'september': 8, 'october': 9, 'november': 10, 'december': 11,
+    'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3,
+    'jun': 5, 'jul': 6, 'aug': 7, 'sep': 8, 'sept': 8,
+    'oct': 9, 'nov': 10, 'dec': 11,
     // Handle typos
     'spetember': 8
 };
@@ -42,100 +43,98 @@ function parseStartDate(dateStr) {
     // Handle formats like "January 17-19, 2026 (tentative)"
     dateStr = dateStr.replace(/\s*\(.*?\)\s*/g, '').trim();
     
-    // Try to extract: Month Day[-Day or -Month Day], Year
-    // Examples:
-    //   "August 22-23, 2025" -> August 22, 2025
-    //   "January 30-February 1, 2026" -> January 30, 2026
-    //   "October 31-November 2, 2025" -> October 31, 2025
-    //   "March 7-9" -> March 7, (need year from context)
-    
     // First, try to find the year
     const yearMatch = dateStr.match(/\b(202\d)\b/);
     let year = yearMatch ? parseInt(yearMatch[1]) : null;
     
-    // Find the month
-    let monthName = null;
+    // Find the first month mentioned
     let monthNum = null;
+    let monthMatchIndex = Infinity;
+    
     for (const [name, num] of Object.entries(MONTHS)) {
-        if (dateStr.toLowerCase().includes(name)) {
-            monthName = name;
+        const idx = dateStr.toLowerCase().indexOf(name);
+        if (idx !== -1 && idx < monthMatchIndex) {
+            monthMatchIndex = idx;
             monthNum = num;
-            break;
         }
     }
     
     if (monthNum === null) {
-        console.warn(`Could not parse month from: "${dateStr}"`);
+        console.warn(`  Could not parse month from: "${dateStr}"`);
         return null;
     }
     
-    // Find the first day number after the month name
-    const monthIndex = dateStr.toLowerCase().indexOf(monthName);
-    const afterMonth = dateStr.substring(monthIndex + monthName.length);
-    const dayMatch = afterMonth.match(/\s*(\d{1,2})/);
+    // Find the first day number after the month
+    const afterMonth = dateStr.substring(monthMatchIndex);
+    const dayMatch = afterMonth.match(/[a-z]+\s*(\d{1,2})/i);
     
     if (!dayMatch) {
-        console.warn(`Could not parse day from: "${dateStr}"`);
+        console.warn(`  Could not parse day from: "${dateStr}"`);
         return null;
     }
     
     const day = parseInt(dayMatch[1]);
     
-    // If no year found, try to infer from season context (default to 2025)
+    // If no year found, default based on month (Aug-Dec = 2025, Jan-Jul = 2026)
     if (!year) {
-        year = 2025;
+        year = monthNum >= 7 ? 2025 : 2026;
     }
     
     try {
         return new Date(year, monthNum, day);
     } catch (e) {
-        console.warn(`Could not create date from: "${dateStr}"`, e);
+        console.warn(`  Could not create date from: "${dateStr}"`, e);
         return null;
     }
 }
 
 /**
  * Normalize tournament name for matching
- * Handles variations like "Blue Key" vs "BlueKey", case differences, etc.
  */
 function normalizeTournamentName(name) {
     if (!name) return '';
     return name.toLowerCase()
-        .replace(/[^a-z0-9]/g, '') // Remove non-alphanumeric
+        .replace(/[^a-z0-9]/g, '')
         .trim();
 }
 
 /**
- * Load tournament dates from CSV file
- * Returns a Map of normalized tournament name -> { originalName, date }
+ * Load tournament dates from CSV/TSV file
  */
 function loadTournamentDates(csvPath) {
     const dateMap = new Map();
     
     if (!fs.existsSync(csvPath)) {
-        console.log(`Tournament_Dates.csv not found at ${csvPath}, tournaments will not be sorted chronologically`);
         return dateMap;
     }
+    
+    console.log(`\nReading tournament dates from: ${csvPath}`);
     
     const content = fs.readFileSync(csvPath, 'utf-8');
     const lines = content.split(/\r?\n/).filter(line => line.trim());
     
+    // Detect delimiter (tab or comma)
+    const firstLine = lines[0];
+    const delimiter = firstLine.includes('\t') ? '\t' : ',';
+    console.log(`  Detected delimiter: ${delimiter === '\t' ? 'TAB' : 'COMMA'}`);
+    
     // Skip header if present
     let startIndex = 0;
-    const firstLine = lines[0].toLowerCase();
-    if (firstLine.includes('date') && firstLine.includes('name')) {
+    const firstLineLower = firstLine.toLowerCase();
+    if (firstLineLower.includes('date') || firstLineLower.includes('name')) {
+        console.log(`  Skipping header row: "${firstLine}"`);
         startIndex = 1;
     }
     
     for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i];
         
-        // Parse CSV line (handle potential commas in values)
+        // Parse line based on delimiter
         let columns;
-        if (line.includes('\t')) {
-            columns = line.split('\t');
+        if (delimiter === '\t') {
+            columns = line.split('\t').map(c => c.trim());
         } else {
-            // Simple CSV parsing
+            // Handle CSV with potential quoted values
             columns = [];
             let current = '';
             let inQuote = false;
@@ -172,7 +171,7 @@ function loadTournamentDates(csvPath) {
         }
     }
     
-    console.log(`Loaded ${dateMap.size} tournament dates from ${csvPath}`);
+    console.log(`  Loaded ${dateMap.size} tournament dates\n`);
     return dateMap;
 }
 
@@ -187,27 +186,31 @@ function findTournamentDate(folderName, dateMap) {
         return dateMap.get(normalized);
     }
     
-    // Partial match - folder name contains or is contained by a tournament name
+    // Try partial matching
     for (const [key, value] of dateMap.entries()) {
+        // Check if one contains the other
         if (normalized.includes(key) || key.includes(normalized)) {
             return value;
         }
     }
     
-    // Try matching without common suffixes/prefixes
-    const suffixes = ['invitational', 'tournament', 'classic', 'memorial'];
+    // Try matching without common suffixes
+    const suffixes = ['invitational', 'tournament', 'classic', 'memorial', 'forum'];
+    let cleanedNormalized = normalized;
     for (const suffix of suffixes) {
-        const withoutSuffix = normalized.replace(suffix, '');
-        if (dateMap.has(withoutSuffix)) {
-            return dateMap.get(withoutSuffix);
+        cleanedNormalized = cleanedNormalized.replace(suffix, '');
+    }
+    
+    for (const [key, value] of dateMap.entries()) {
+        let cleanedKey = key;
+        for (const suffix of suffixes) {
+            cleanedKey = cleanedKey.replace(suffix, '');
         }
-        for (const [key, value] of dateMap.entries()) {
-            const keyWithoutSuffix = key.replace(suffix, '');
-            if (withoutSuffix === keyWithoutSuffix || 
-                withoutSuffix.includes(keyWithoutSuffix) || 
-                keyWithoutSuffix.includes(withoutSuffix)) {
-                return value;
-            }
+        
+        if (cleanedNormalized === cleanedKey || 
+            cleanedNormalized.includes(cleanedKey) || 
+            cleanedKey.includes(cleanedNormalized)) {
+            return value;
         }
     }
     
@@ -225,8 +228,20 @@ const seasons = entries.filter(entry => {
 }).sort().reverse();
 
 manifest.seasons = seasons;
+console.log(`Found seasons: ${seasons.join(', ')}\n`);
+
+// Try to load tournament dates from root level first
+let globalDateMap = new Map();
+const rootDatesPath = path.join(rootDir, 'Tournament_Dates.csv');
+if (fs.existsSync(rootDatesPath)) {
+    globalDateMap = loadTournamentDates(rootDatesPath);
+}
 
 for (const season of seasons) {
+    console.log(`\n${'='.repeat(50)}`);
+    console.log(`Processing season: ${season}`);
+    console.log('='.repeat(50));
+    
     manifest.data[season] = { tournamentOrder: [], tournaments: [] };
     
     const ldPath = path.join(rootDir, season, 'LD');
@@ -235,9 +250,21 @@ for (const season of seasons) {
         continue;
     }
     
-    // Load tournament dates for this season
-    const datesPath = path.join(rootDir, season, 'LD', 'Tournament_Dates.csv');
-    const dateMap = loadTournamentDates(datesPath);
+    // Load tournament dates - try season-specific first, then global
+    let dateMap = new Map();
+    const seasonDatesPath = path.join(ldPath, 'Tournament_Dates.csv');
+    
+    if (fs.existsSync(seasonDatesPath)) {
+        dateMap = loadTournamentDates(seasonDatesPath);
+    } else if (globalDateMap.size > 0) {
+        console.log(`Using global Tournament_Dates.csv`);
+        dateMap = globalDateMap;
+    } else {
+        console.log(`WARNING: No Tournament_Dates.csv found!`);
+        console.log(`  Looked in: ${seasonDatesPath}`);
+        console.log(`  Looked in: ${rootDatesPath}`);
+        console.log(`  Tournaments will NOT be sorted chronologically.\n`);
+    }
     
     const tournamentDirs = fs.readdirSync(ldPath).filter(entry => {
         const fullPath = path.join(ldPath, entry);
@@ -245,8 +272,11 @@ for (const season of seasons) {
         return stat.isDirectory();
     });
     
+    console.log(`Found ${tournamentDirs.length} tournament folders\n`);
+    
     // Build tournament data with dates
     const tournamentsWithDates = [];
+    const unmatchedTournaments = [];
     
     for (const tournamentName of tournamentDirs) {
         const tournamentPath = path.join(ldPath, tournamentName);
@@ -286,14 +316,18 @@ for (const season of seasons) {
         // Find date for this tournament
         const dateInfo = findTournamentDate(tournamentName, dateMap);
         
+        if (dateInfo) {
+            console.log(`✓ ${tournamentName} → ${dateInfo.dateStr}`);
+        } else {
+            console.log(`✗ ${tournamentName} → NO DATE FOUND`);
+            unmatchedTournaments.push(tournamentName);
+        }
+        
         tournamentsWithDates.push({
             tournament,
             date: dateInfo ? dateInfo.date : null,
             dateStr: dateInfo ? dateInfo.dateStr : null
         });
-        
-        const dateDisplay = dateInfo ? dateInfo.dateStr : 'NO DATE FOUND';
-        console.log(`Found: ${tournamentName} - ${tournament.prelims.length} prelims, ${tournament.elims.length} elims [${dateDisplay}]`);
     }
     
     // Sort tournaments by date (earliest first), tournaments without dates go to the end
@@ -310,15 +344,26 @@ for (const season of seasons) {
     manifest.data[season].tournamentOrder = tournamentsWithDates.map(t => t.tournament.name);
     manifest.data[season].tournaments = tournamentsWithDates.map(t => t.tournament);
     
-    console.log(`\nChronological order for ${season}:`);
+    console.log(`\n${'─'.repeat(50)}`);
+    console.log(`CHRONOLOGICAL ORDER for ${season}:`);
+    console.log('─'.repeat(50));
     tournamentsWithDates.forEach((t, i) => {
-        const dateStr = t.dateStr || 'Unknown';
-        console.log(`  ${i + 1}. ${t.tournament.name} (${dateStr})`);
+        const dateStr = t.dateStr || '(no date)';
+        const prelims = t.tournament.prelims.length;
+        const elims = t.tournament.elims.length;
+        console.log(`${String(i + 1).padStart(2)}. ${t.tournament.name.padEnd(25)} ${dateStr.padEnd(30)} [${prelims}P/${elims}E]`);
     });
+    
+    if (unmatchedTournaments.length > 0) {
+        console.log(`\n⚠️  ${unmatchedTournaments.length} tournaments without dates (will be sorted alphabetically at end):`);
+        unmatchedTournaments.forEach(t => console.log(`    - ${t}`));
+    }
 }
 
 // Write manifest
 fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
-console.log(`\nManifest written to manifest.json`);
+console.log(`\n${'='.repeat(50)}`);
+console.log(`Manifest written to manifest.json`);
 console.log(`Seasons: ${seasons.join(', ')}`);
 console.log(`Total tournaments: ${Object.values(manifest.data).reduce((sum, s) => sum + s.tournaments.length, 0)}`);
+console.log('='.repeat(50));
