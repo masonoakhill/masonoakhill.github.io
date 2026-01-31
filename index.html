@@ -279,12 +279,6 @@
         const BID_MULTIPLIERS = { 'octas': 1.3, 'quarters': 1.2, 'semis': 1.1, 'finals': 1.0 };
         const ELIM_BONUSES = { 'quarters': 10, 'semis': 20, 'finals': 30, 'winner': 40 };
 
-        const GITHUB_CONFIG = {
-            owner: 'masonoakhill',
-            repo: 'masonoakhill.github.io',
-            branch: 'main'
-        };
-
         const getDirectUrl = (path) => `/${path}`;
         const fileCache = new Map();
 
@@ -362,7 +356,7 @@
 
         const log = (msg) => console.log(msg);
 
-        // Name Resolution - Strict Exact Match Only
+        // Name Resolution
         const resolveCodeForTournament = (code, tournamentName) => {
             if (!code || !tournamentName) return null;
             
@@ -832,28 +826,26 @@
                     })
                 );
                 
-                const CORRECT_TOURNAMENT_ORDER = [
-                    "LaCosta", "BlueKey", "TOCDigital1", "StMarks", "Heritage Hall",
-                    "CollegePrep", "DowlingCatholic", "Emory", "Alta", "Greenhill",
-                    "Badgerland", "LonghornClassic", "Peninsula", "HarvardWestlake",
-                    "Princeton", "AppleValley", "Meadows", "NSDSO_Online", "Loyola",
-                    "Grapevine", "IsidoreNewman", "MidAmerica", "Yale", "Bronx",
-                    "Glenbrooks", "Damus", "Blake", "JackHowe", "NanoNagle"
-                ];
-                
-                let tournamentOrder;
-                if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder && manifest.data[season].tournamentOrder.length > 0) {
+                // Get tournament order from manifest (already sorted chronologically by generate-manifest.js)
+                let tournamentOrder = [];
+                if (manifest && manifest.data && manifest.data[season] && manifest.data[season].tournamentOrder) {
                     tournamentOrder = [...manifest.data[season].tournamentOrder];
+                    console.log('Using chronological tournament order from manifest');
                 } else {
-                    tournamentOrder = [...CORRECT_TOURNAMENT_ORDER];
+                    // Fallback: use the order tournaments appear in the discovered list
+                    tournamentOrder = tournaments.map(t => t.name);
+                    console.log('No manifest order found, using discovery order');
                 }
                 
+                // Add any tournaments that exist but aren't in the order list
                 const orderSet = new Set(tournamentOrder);
                 for (const t of tournaments) {
                     if (!orderSet.has(t.name)) {
                         tournamentOrder.push(t.name);
                     }
                 }
+                
+                console.log('Tournament processing order:', tournamentOrder);
                 
                 const tournamentByName = {};
                 for (const t of tournaments) {
