@@ -1188,7 +1188,7 @@
                             </div>
                             <div class="bg-white/5 rounded-lg p-3">
                                 <div class="text-[10px] text-white/30 uppercase tracking-wider">Neg Win Rate</div>
-                                <div class="text-sm font-medium text-white mt-1">${comp.negRounds > 0 ? Math.round((comp.negWins/comp.negLosses)*100) : 0}% <span class="text-xs text-white/30">(${comp.negWins}-${comp.negLosses})</span></div>
+                                <div class="text-sm font-medium text-white mt-1">${comp.negRounds > 0 ? Math.round((comp.negWins/comp.negRounds)*100) : 0}% <span class="text-xs text-white/30">(${comp.negWins}-${comp.negLosses})</span></div>
                             </div>
                         </div>
                         ${Object.keys(comp.tournamentStats || {}).length > 0 ? `
