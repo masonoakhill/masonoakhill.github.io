@@ -8,6 +8,9 @@
   "data": {
     "2025-2026": {
       "tournamentOrder": [
+        "Blake",
+        "Bronx",
+        "StMarks",
         "Loyola",
         "NSDSO_Online",
         "Grapevine",
@@ -34,12 +37,71 @@
         "CollegePrep",
         "Peninsula",
         "Emory",
-        "HarvardWestlake",
-        "Blake",
-        "Bronx",
-        "StMarks"
+        "HarvardWestlake"
       ],
       "tournaments": [
+        {
+          "name": "Blake",
+          "path": "2025-2026/LD/Blake",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1413468.csv",
+            "Tabroom-1413469.csv",
+            "Tabroom-1413470.csv",
+            "Tabroom-1413471.csv",
+            "Tabroom-1413472.csv",
+            "Tabroom-1413473.csv"
+          ],
+          "elims": [
+            "Tabroom-1413474.csv",
+            "Tabroom-1413475.csv",
+            "Tabroom-1413476.csv",
+            "Tabroom-1413477.csv",
+            "Tabroom-1413478.csv",
+            "Tabroom-1413479.csv"
+          ]
+        },
+        {
+          "name": "Bronx",
+          "path": "2025-2026/LD/Bronx",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1351826.csv",
+            "Tabroom-1351827.csv",
+            "Tabroom-1351828.csv",
+            "Tabroom-1351829.csv",
+            "Tabroom-1351830.csv",
+            "Tabroom-1351831.csv"
+          ],
+          "elims": [
+            "Tabroom-1351832.csv",
+            "Tabroom-1351833.csv",
+            "Tabroom-1351834.csv",
+            "Tabroom-1351835.csv",
+            "Tabroom-1351836.csv",
+            "Tabroom-1351837.csv"
+          ]
+        },
+        {
+          "name": "StMarks",
+          "path": "2025-2026/LD/StMarks",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1354724.csv",
+            "Tabroom-1354725.csv",
+            "Tabroom-1354726.csv",
+            "Tabroom-1354727.csv",
+            "Tabroom-1354728.csv",
+            "Tabroom-1354729.csv"
+          ],
+          "elims": [
+            "Tabroom-1354730.csv",
+            "Tabroom-1354731.csv",
+            "Tabroom-1354732.csv",
+            "Tabroom-1354733.csv",
+            "Tabroom-1354734.csv"
+          ]
+        },
         {
           "name": "Loyola",
           "path": "2025-2026/LD/Loyola",
@@ -576,73 +638,17 @@
             "Tabroom-1478800 9.47.57 AM.csv",
             "Tabroom-1478801 9.47.57 AM.csv"
           ]
-        },
-        {
-          "name": "Blake",
-          "path": "2025-2026/LD/Blake",
-          "entries": "entries.csv",
-          "prelims": [
-            "Tabroom-1413468.csv",
-            "Tabroom-1413469.csv",
-            "Tabroom-1413470.csv",
-            "Tabroom-1413471.csv",
-            "Tabroom-1413472.csv",
-            "Tabroom-1413473.csv"
-          ],
-          "elims": [
-            "Tabroom-1413474.csv",
-            "Tabroom-1413475.csv",
-            "Tabroom-1413476.csv",
-            "Tabroom-1413477.csv",
-            "Tabroom-1413478.csv",
-            "Tabroom-1413479.csv"
-          ]
-        },
-        {
-          "name": "Bronx",
-          "path": "2025-2026/LD/Bronx",
-          "entries": "entries.csv",
-          "prelims": [
-            "Tabroom-1351826.csv",
-            "Tabroom-1351827.csv",
-            "Tabroom-1351828.csv",
-            "Tabroom-1351829.csv",
-            "Tabroom-1351830.csv",
-            "Tabroom-1351831.csv"
-          ],
-          "elims": [
-            "Tabroom-1351832.csv",
-            "Tabroom-1351833.csv",
-            "Tabroom-1351834.csv",
-            "Tabroom-1351835.csv",
-            "Tabroom-1351836.csv",
-            "Tabroom-1351837.csv"
-          ]
-        },
-        {
-          "name": "StMarks",
-          "path": "2025-2026/LD/StMarks",
-          "entries": "entries.csv",
-          "prelims": [
-            "Tabroom-1354724.csv",
-            "Tabroom-1354725.csv",
-            "Tabroom-1354726.csv",
-            "Tabroom-1354727.csv",
-            "Tabroom-1354728.csv",
-            "Tabroom-1354729.csv"
-          ],
-          "elims": [
-            "Tabroom-1354730.csv",
-            "Tabroom-1354731.csv",
-            "Tabroom-1354732.csv",
-            "Tabroom-1354733.csv",
-            "Tabroom-1354734.csv"
-          ]
         }
       ]
     },
     "2024-2025": {
       "tournamentOrder": [
+        "Cypress",
+        "Delores",
+        "Durham",
+        "Florida",
+        "Lewis&Clark",
+        "UniversityOfHouston",
         "Loyola",
         "NSDSO_Online",
         "Grapevine",
@@ -693,15 +699,125 @@
         "MillardNorth",
         "TOCDigital3",
         "USC",
-        "TOC",
-        "Cypress",
-        "Delores",
-        "Durham",
-        "Florida",
-        "Lewis&Clark",
-        "UniversityOfHouston"
+        "TOC"
       ],
       "tournaments": [
+        {
+          "name": "Cypress",
+          "path": "2024-2025/LD/Cypress",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (6).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
+        {
+          "name": "Delores",
+          "path": "2024-2025/LD/Delores",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "Durham",
+          "path": "2024-2025/LD/Durham",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv",
+            "tabroom-export (7).csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv"
+          ]
+        },
+        {
+          "name": "Florida",
+          "path": "2024-2025/LD/Florida",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (11).csv",
+            "tabroom-export (12).csv",
+            "tabroom-export (13).csv",
+            "tabroom-export (14).csv",
+            "tabroom-export (15).csv",
+            "tabroom-export (16).csv"
+          ],
+          "elims": [
+            "tabroom-export (11).csv",
+            "tabroom-export (12).csv",
+            "tabroom-export (13).csv",
+            "tabroom-export (14).csv",
+            "tabroom-export (15).csv"
+          ]
+        },
+        {
+          "name": "Lewis&Clark",
+          "path": "2024-2025/LD/Lewis&Clark",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv"
+          ]
+        },
+        {
+          "name": "UniversityOfHouston",
+          "path": "2024-2025/LD/UniversityOfHouston",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
         {
           "name": "Loyola",
           "path": "2024-2025/LD/Loyola",
@@ -1709,127 +1825,23 @@
             "Tabroom-1301980.csv",
             "Tabroom-1301981.csv"
           ]
-        },
-        {
-          "name": "Cypress",
-          "path": "2024-2025/LD/Cypress",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (6).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
-        {
-          "name": "Delores",
-          "path": "2024-2025/LD/Delores",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "Durham",
-          "path": "2024-2025/LD/Durham",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv",
-            "tabroom-export (7).csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv"
-          ]
-        },
-        {
-          "name": "Florida",
-          "path": "2024-2025/LD/Florida",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (11).csv",
-            "tabroom-export (12).csv",
-            "tabroom-export (13).csv",
-            "tabroom-export (14).csv",
-            "tabroom-export (15).csv",
-            "tabroom-export (16).csv"
-          ],
-          "elims": [
-            "tabroom-export (11).csv",
-            "tabroom-export (12).csv",
-            "tabroom-export (13).csv",
-            "tabroom-export (14).csv",
-            "tabroom-export (15).csv"
-          ]
-        },
-        {
-          "name": "Lewis&Clark",
-          "path": "2024-2025/LD/Lewis&Clark",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv"
-          ]
-        },
-        {
-          "name": "UniversityOfHouston",
-          "path": "2024-2025/LD/UniversityOfHouston",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
         }
       ]
     },
     "2023-2024": {
       "tournamentOrder": [
+        "Blake",
+        "Delores",
+        "Durham",
+        "LewisClark",
+        "MilliardNorth",
+        "MtVernon",
+        "NYC",
+        "SeasonOpener",
+        "StMarks",
+        "UHouston",
+        "UNLV",
+        "UpperStClair",
         "Loyola",
         "Grapevine",
         "Greenhill",
@@ -1856,6 +1868,7 @@
         "Sunvite",
         "Peninsula",
         "Lexington",
+        "Emory",
         "Columbia",
         "Pennsbury",
         "UPenn",
@@ -1865,22 +1878,241 @@
         "HarvardWestlake",
         "TOCDigital2",
         "TOCDigital3",
-        "TOC",
-        "BarkleyForum",
-        "Blake",
-        "Delores",
-        "Durham",
-        "LewisClark",
-        "MilliardNorth",
-        "MtVernon",
-        "NYC",
-        "SeasonOpener",
-        "StMarks",
-        "UHouston",
-        "UNLV",
-        "UpperStClair"
+        "TOC"
       ],
       "tournaments": [
+        {
+          "name": "Blake",
+          "path": "2023-2024/LD/Blake",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "Delores",
+          "path": "2023-2024/LD/Delores",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "Durham",
+          "path": "2023-2024/LD/Durham",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "LewisClark",
+          "path": "2023-2024/LD/LewisClark",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "MilliardNorth",
+          "path": "2023-2024/LD/MilliardNorth",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "MtVernon",
+          "path": "2023-2024/LD/MtVernon",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "NYC",
+          "path": "2023-2024/LD/NYC",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "SeasonOpener",
+          "path": "2023-2024/LD/SeasonOpener",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "StMarks",
+          "path": "2023-2024/LD/StMarks",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "UHouston",
+          "path": "2023-2024/LD/UHouston",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "UNLV",
+          "path": "2023-2024/LD/UNLV",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
+          "name": "UpperStClair",
+          "path": "2023-2024/LD/UpperStClair",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export.csv"
+          ]
+        },
         {
           "name": "Loyola",
           "path": "2023-2024/LD/Loyola",
@@ -2394,6 +2626,27 @@
           ]
         },
         {
+          "name": "Emory",
+          "path": "2023-2024/LD/Emory",
+          "entries": "entries.csv",
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ],
+          "elims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export.csv"
+          ]
+        },
+        {
           "name": "Columbia",
           "path": "2023-2024/LD/Columbia",
           "entries": "entries.csv",
@@ -2597,264 +2850,20 @@
             "tabroom-export (4).csv",
             "tabroom-export.csv"
           ]
-        },
-        {
-          "name": "BarkleyForum",
-          "path": "2023-2024/LD/BarkleyForum",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "Blake",
-          "path": "2023-2024/LD/Blake",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "Delores",
-          "path": "2023-2024/LD/Delores",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "Durham",
-          "path": "2023-2024/LD/Durham",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "LewisClark",
-          "path": "2023-2024/LD/LewisClark",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "MilliardNorth",
-          "path": "2023-2024/LD/MilliardNorth",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "MtVernon",
-          "path": "2023-2024/LD/MtVernon",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "NYC",
-          "path": "2023-2024/LD/NYC",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "SeasonOpener",
-          "path": "2023-2024/LD/SeasonOpener",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "StMarks",
-          "path": "2023-2024/LD/StMarks",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "UHouston",
-          "path": "2023-2024/LD/UHouston",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "UNLV",
-          "path": "2023-2024/LD/UNLV",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "UpperStClair",
-          "path": "2023-2024/LD/UpperStClair",
-          "entries": "entries.csv",
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export.csv"
-          ],
-          "elims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export.csv"
-          ]
         }
       ]
     },
     "2022-2023": {
       "tournamentOrder": [
+        "ASU",
+        "Blake",
+        "Duke",
+        "Errors",
+        "HolyCross",
+        "NYC",
+        "UHouston",
+        "UK1",
+        "UK2",
         "Loyola",
         "Grapevine",
         "Greenhill",
@@ -2889,18 +2898,170 @@
         "HarvardWestlake",
         "TOCDigital2",
         "TOCDigital3",
-        "TOC",
-        "ASU",
-        "Blake",
-        "Duke",
-        "Errors",
-        "HolyCross",
-        "NYC",
-        "UHouston",
-        "UK1",
-        "UK2"
+        "TOC"
       ],
       "tournaments": [
+        {
+          "name": "ASU",
+          "path": "2022-2023/LD/ASU",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
+        {
+          "name": "Blake",
+          "path": "2022-2023/LD/Blake",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
+        {
+          "name": "Duke",
+          "path": "2022-2023/LD/Duke",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
+        {
+          "name": "Errors",
+          "path": "2022-2023/LD/Errors",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "HolyCross",
+          "path": "2022-2023/LD/HolyCross",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv"
+          ],
+          "elims": [
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv",
+            "tabroom-export (7).csv"
+          ]
+        },
+        {
+          "name": "NYC",
+          "path": "2022-2023/LD/NYC",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
+        {
+          "name": "UHouston",
+          "path": "2022-2023/LD/UHouston",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
+        {
+          "name": "UK1",
+          "path": "2022-2023/LD/UK1",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
+        {
+          "name": "UK2",
+          "path": "2022-2023/LD/UK2",
+          "entries": null,
+          "prelims": [
+            "tabroom-export (1).csv",
+            "tabroom-export (2).csv",
+            "tabroom-export (3).csv",
+            "tabroom-export (4).csv",
+            "tabroom-export (5).csv",
+            "tabroom-export (6).csv"
+          ],
+          "elims": [
+            "tabroom-export (10).csv",
+            "tabroom-export (11).csv",
+            "tabroom-export (7).csv",
+            "tabroom-export (8).csv",
+            "tabroom-export (9).csv"
+          ]
+        },
         {
           "name": "Loyola",
           "path": "2022-2023/LD/Loyola",
@@ -3592,167 +3753,6 @@
             "tabroom-export (3).csv",
             "tabroom-export (4).csv",
             "tabroom-export.csv"
-          ]
-        },
-        {
-          "name": "ASU",
-          "path": "2022-2023/LD/ASU",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
-        {
-          "name": "Blake",
-          "path": "2022-2023/LD/Blake",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
-        {
-          "name": "Duke",
-          "path": "2022-2023/LD/Duke",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
-        {
-          "name": "Errors",
-          "path": "2022-2023/LD/Errors",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "HolyCross",
-          "path": "2022-2023/LD/HolyCross",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv"
-          ],
-          "elims": [
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv",
-            "tabroom-export (7).csv"
-          ]
-        },
-        {
-          "name": "NYC",
-          "path": "2022-2023/LD/NYC",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
-        {
-          "name": "UHouston",
-          "path": "2022-2023/LD/UHouston",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
-        {
-          "name": "UK1",
-          "path": "2022-2023/LD/UK1",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
-          ]
-        },
-        {
-          "name": "UK2",
-          "path": "2022-2023/LD/UK2",
-          "entries": null,
-          "prelims": [
-            "tabroom-export (1).csv",
-            "tabroom-export (2).csv",
-            "tabroom-export (3).csv",
-            "tabroom-export (4).csv",
-            "tabroom-export (5).csv",
-            "tabroom-export (6).csv"
-          ],
-          "elims": [
-            "tabroom-export (10).csv",
-            "tabroom-export (11).csv",
-            "tabroom-export (7).csv",
-            "tabroom-export (8).csv",
-            "tabroom-export (9).csv"
           ]
         }
       ]
