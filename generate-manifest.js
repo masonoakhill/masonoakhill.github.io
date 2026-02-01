@@ -330,15 +330,15 @@ for (const season of seasons) {
         });
     }
     
-    // Sort tournaments by date (earliest first), tournaments without dates go to the end
-    tournamentsWithDates.sort((a, b) => {
-        if (a.date && b.date) {
-            return a.date.getTime() - b.date.getTime();
-        }
-        if (a.date) return -1;
-        if (b.date) return 1;
-        return a.tournament.name.localeCompare(b.tournament.name);
-    });
+// Sort tournaments by date (earliest first), tournaments without dates go FIRST
+tournamentsWithDates.sort((a, b) => {
+    if (a.date && b.date) {
+        return a.date.getTime() - b.date.getTime();
+    }
+    if (a.date) return 1;  
+    if (b.date) return -1; 
+    return a.tournament.name.localeCompare(b.tournament.name);
+});
     
     // Build final ordered lists
     manifest.data[season].tournamentOrder = tournamentsWithDates.map(t => t.tournament.name);
