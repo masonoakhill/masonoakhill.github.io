@@ -643,7 +643,9 @@
         ];
 
         const discoverSeasons = async () => {
+            console.log('[DEBUG] discoverSeasons called');
             const manifest = await loadManifest();
+            console.log('[DEBUG] manifest loaded:', manifest ? 'yes, seasons=' + JSON.stringify(manifest.seasons) : 'null');
             if (manifest && manifest.seasons && manifest.seasons.length > 0) {
                 // Manifest is the source of truth — it includes all seasons
                 // including custom circuits added via generate-manifest.js
@@ -743,15 +745,20 @@
         };
 
         const populateSeasonDropdown = async () => {
+            console.log('[DEBUG] populateSeasonDropdown called');
             const seasons = await discoverSeasons();
+            console.log('[DEBUG] seasons discovered:', seasons);
             if (seasons.length === 0) {
                 el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
                 return;
             }
             
-            el.seasonSelect.innerHTML = seasons.map(season => 
+            const optionsHTML = seasons.map(season => 
                 `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
             ).join('');
+            console.log('[DEBUG] setting innerHTML to:', optionsHTML);
+            el.seasonSelect.innerHTML = optionsHTML;
+            console.log('[DEBUG] seasonSelect now has', el.seasonSelect.options.length, 'options');
             
             loadSeasonData(seasons[0]);
         };
