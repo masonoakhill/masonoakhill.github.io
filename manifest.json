@@ -37,8 +37,18 @@
         "IsidoreNewman",
         "CollegePrep",
         "Peninsula",
+        "MountVernon",
         "HarvardWestlake",
-        "Emory"
+        "Emory",
+        "Columbia",
+        "GoldenDesert",
+        "Stanford",
+        "ThreeRivers",
+        "Berkeley",
+        "Harvard",
+        "TOCDigital2",
+        "TOCDigital3",
+        "USC"
       ],
       "tournaments": [
         {
@@ -600,6 +610,23 @@
           ]
         },
         {
+          "name": "MountVernon",
+          "path": "2025-2026/LD/MountVernon",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1342056.csv",
+            "Tabroom-1342057.csv",
+            "Tabroom-1342058.csv",
+            "Tabroom-1342059.csv",
+            "Tabroom-1342060.csv"
+          ],
+          "elims": [
+            "Tabroom-1342061.csv",
+            "Tabroom-1342062.csv",
+            "Tabroom-1342063.csv"
+          ]
+        },
+        {
           "name": "HarvardWestlake",
           "path": "2025-2026/LD/HarvardWestlake",
           "entries": "entries.csv",
@@ -638,6 +665,190 @@
             "Tabroom-1344427.csv",
             "Tabroom-1344428.csv",
             "Tabroom-1344429.csv"
+          ]
+        },
+        {
+          "name": "Columbia",
+          "path": "2025-2026/LD/Columbia",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1335398.csv",
+            "Tabroom-1335399.csv",
+            "Tabroom-1335401.csv",
+            "Tabroom-1335402.csv",
+            "Tabroom-1335403.csv",
+            "Tabroom-1335404.csv"
+          ],
+          "elims": [
+            "Tabroom-1335400.csv",
+            "Tabroom-1335405.csv",
+            "Tabroom-1335408.csv",
+            "Tabroom-1446180.csv",
+            "Tabroom-1446181.csv"
+          ]
+        },
+        {
+          "name": "GoldenDesert",
+          "path": "2025-2026/LD/GoldenDesert",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363188.csv",
+            "Tabroom-1363189.csv",
+            "Tabroom-1363190.csv",
+            "Tabroom-1363191.csv",
+            "Tabroom-1363192.csv",
+            "Tabroom-1363193.csv"
+          ],
+          "elims": [
+            "Tabroom-1363194.csv",
+            "Tabroom-1363195.csv",
+            "Tabroom-1363196.csv",
+            "Tabroom-1363197.csv"
+          ]
+        },
+        {
+          "name": "Stanford",
+          "path": "2025-2026/LD/Stanford",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1329669.csv",
+            "Tabroom-1329670.csv",
+            "Tabroom-1329671.csv",
+            "Tabroom-1329672.csv",
+            "Tabroom-1329673.csv",
+            "Tabroom-1329674.csv"
+          ],
+          "elims": [
+            "Tabroom-1329675.csv",
+            "Tabroom-1329676.csv",
+            "Tabroom-1329677.csv",
+            "Tabroom-1329678.csv",
+            "Tabroom-1329679.csv",
+            "Tabroom-1329680.csv"
+          ]
+        },
+        {
+          "name": "ThreeRivers",
+          "path": "2025-2026/LD/ThreeRivers",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1366800.csv",
+            "Tabroom-1366801.csv",
+            "Tabroom-1366802.csv",
+            "Tabroom-1366803.csv",
+            "Tabroom-1366804.csv",
+            "Tabroom-1366805.csv"
+          ],
+          "elims": [
+            "Tabroom-1366807.csv",
+            "Tabroom-1366808.csv",
+            "Tabroom-1366809.csv",
+            "Tabroom-1366810.csv"
+          ]
+        },
+        {
+          "name": "Berkeley",
+          "path": "2025-2026/LD/Berkeley",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1331485.csv",
+            "Tabroom-1331486.csv",
+            "Tabroom-1331487.csv",
+            "Tabroom-1331488.csv",
+            "Tabroom-1331489.csv",
+            "Tabroom-1331490.csv"
+          ],
+          "elims": [
+            "Tabroom-1331492.csv",
+            "Tabroom-1331493.csv",
+            "Tabroom-1331494.csv",
+            "Tabroom-1331495.csv",
+            "Tabroom-1331496.csv",
+            "Tabroom-1493948.csv"
+          ]
+        },
+        {
+          "name": "Harvard",
+          "path": "2025-2026/LD/Harvard",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1366593.csv",
+            "Tabroom-1366594.csv",
+            "Tabroom-1366595.csv",
+            "Tabroom-1366596.csv",
+            "Tabroom-1366597.csv",
+            "Tabroom-1366598.csv"
+          ],
+          "elims": [
+            "Tabroom-1366599.csv",
+            "Tabroom-1366600.csv",
+            "Tabroom-1366601.csv",
+            "Tabroom-1366602.csv",
+            "Tabroom-1366603.csv",
+            "Tabroom-1366604.csv",
+            "Tabroom-1366605.csv"
+          ]
+        },
+        {
+          "name": "TOCDigital2",
+          "path": "2025-2026/LD/TOCDigital2",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363724.csv",
+            "Tabroom-1363725.csv",
+            "Tabroom-1363726.csv",
+            "Tabroom-1363727.csv",
+            "Tabroom-1363728.csv",
+            "Tabroom-1363729.csv"
+          ],
+          "elims": [
+            "Tabroom-1363730.csv",
+            "Tabroom-1363731.csv",
+            "Tabroom-1363732.csv",
+            "Tabroom-1363733.csv",
+            "Tabroom-1363734.csv",
+            "Tabroom-1363735.csv"
+          ]
+        },
+        {
+          "name": "TOCDigital3",
+          "path": "2025-2026/LD/TOCDigital3",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363835.csv",
+            "Tabroom-1363836.csv",
+            "Tabroom-1363837.csv",
+            "Tabroom-1363838.csv",
+            "Tabroom-1363839.csv",
+            "Tabroom-1363840.csv"
+          ],
+          "elims": [
+            "Tabroom-1363841.csv",
+            "Tabroom-1363842.csv",
+            "Tabroom-1363843.csv",
+            "Tabroom-1363844.csv",
+            "Tabroom-1363845.csv",
+            "Tabroom-1363846.csv"
+          ]
+        },
+        {
+          "name": "USC",
+          "path": "2025-2026/LD/USC",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1413884.csv",
+            "Tabroom-1413885.csv",
+            "Tabroom-1413886.csv",
+            "Tabroom-1413887.csv",
+            "Tabroom-1413888.csv",
+            "Tabroom-1413889.csv"
+          ],
+          "elims": [
+            "Tabroom-1413890.csv",
+            "Tabroom-1413891.csv",
+            "Tabroom-1413892.csv",
+            "Tabroom-1413893.csv",
+            "Tabroom-1413894.csv"
           ]
         }
       ]
