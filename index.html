@@ -90,7 +90,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings</h1>
-                    <p class="text-sm text-white/40 mt-1"><span id="circuitLabel">TOC Circuit</span> • 
+                    <p class="text-sm text-white/40 mt-1">TOC Circuit • 
                         <select id="seasonSelect" class="bg-transparent text-white/60 outline-none border-b border-white/20 hover:border-white/40 focus:border-white/60 transition-colors cursor-pointer">
                         </select>
                     </p>
@@ -283,7 +283,6 @@
         // DOM Elements
         const el = {
             seasonSelect: document.getElementById('seasonSelect'),
-            circuitLabel: document.getElementById('circuitLabel'),
             loadingIndicator: document.getElementById('loadingIndicator'),
             competitorsStat: document.getElementById('stat-competitors'),
             tournamentsStat: document.getElementById('stat-tournaments'),
@@ -632,26 +631,33 @@
             return null;
         };
 
+        // Update this list whenever you add a new season folder to the repo.
+        // Standard seasons (YYYY-YYYY) are sorted newest-first automatically.
+        // Custom circuits (any other name) appear after standard seasons.
+        const KNOWN_SEASONS = [
+            '2025-2026',
+            '2024-2025',
+            '2023-2024',
+            '2022-2023',
+            'MA State Circuit 25-26',
+        ];
+
         const discoverSeasons = async () => {
             const manifest = await loadManifest();
-            if (manifest && manifest.seasons) {
-                return manifest.seasons.sort().reverse();
+            if (manifest && manifest.seasons && manifest.seasons.length > 0) {
+                // Manifest is the source of truth — it includes all seasons
+                // including custom circuits added via generate-manifest.js
+                const stdPattern = /^\d{4}-\d{4}$/;
+                const std = manifest.seasons.filter(s => stdPattern.test(s)).sort().reverse();
+                const custom = manifest.seasons.filter(s => !stdPattern.test(s)).sort();
+                return [...std, ...custom];
             }
             
-            const currentYear = new Date().getFullYear();
-            const possibleSeasons = [];
-            for (let year = currentYear + 1; year >= 2020; year--) {
-                possibleSeasons.push(`${year}-${year + 1}`);
-            }
-            
-            const checks = await Promise.all(
-                possibleSeasons.map(async (season) => {
-                    const response = await fetch(getDirectUrl(`${season}/LD/`), { method: 'HEAD' }).catch(() => null);
-                    return response && response.ok ? season : null;
-                })
-            );
-            
-            return checks.filter(Boolean);
+            // Fallback: use the hardcoded list above if manifest can't be loaded
+            const stdPattern = /^\d{4}-\d{4}$/;
+            const std = KNOWN_SEASONS.filter(s => stdPattern.test(s)).sort().reverse();
+            const custom = KNOWN_SEASONS.filter(s => !stdPattern.test(s)).sort();
+            return [...std, ...custom];
         };
 
         const discoverTournaments = async (season, manifest) => {
@@ -736,14 +742,6 @@
             return links;
         };
 
-        const STANDARD_SEASON = /^\d{4}-\d{4}$/;
-
-        const getCircuitLabel = (season) => {
-            if (STANDARD_SEASON.test(season)) return 'TOC Circuit';
-            // Strip trailing year suffixes like "25-26" or "2025-2026" to get a clean label
-            return season.replace(/[\s_-]+\d{2,4}[-_]\d{2,4}$/, '').trim() || season;
-        };
-
         const populateSeasonDropdown = async () => {
             const seasons = await discoverSeasons();
             if (seasons.length === 0) {
@@ -754,8 +752,6 @@
             el.seasonSelect.innerHTML = seasons.map(season => 
                 `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
             ).join('');
-
-            if (el.circuitLabel) el.circuitLabel.textContent = getCircuitLabel(seasons[0]);
             
             loadSeasonData(seasons[0]);
         };
@@ -1371,12 +1367,7 @@
 
         // Event Listeners
         el.exportBtn.addEventListener('click', exportRankings);
-        el.seasonSelect.addEventListener('change', (e) => {
-            if (!state.processing) {
-                if (el.circuitLabel) el.circuitLabel.textContent = getCircuitLabel(e.target.value);
-                loadSeasonData(e.target.value);
-            }
-        });
+        el.seasonSelect.addEventListener('change', (e) => { if (!state.processing) loadSeasonData(e.target.value); });
         el.h2hBtn.addEventListener('click', openH2HModal);
         el.h2hClose.addEventListener('click', closeH2HModal);
         el.h2hModal.addEventListener('click', (e) => { if (e.target === el.h2hModal) closeH2HModal(); });
