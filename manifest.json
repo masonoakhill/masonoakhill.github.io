@@ -3,7 +3,8 @@
     "2025-2026",
     "2024-2025",
     "2023-2024",
-    "2022-2023"
+    "2022-2023",
+    "MA State Circuit 25:26"
   ],
   "data": {
     "2025-2026": {
@@ -3754,6 +3755,40 @@
             "tabroom-export (4).csv",
             "tabroom-export.csv"
           ]
+        }
+      ]
+    },
+    "MA State Circuit 25:26": {
+      "tournamentOrder": [
+        "Averill",
+        "Little Lex"
+      ],
+      "tournaments": [
+        {
+          "name": "Averill",
+          "path": "MA State Circuit 25:26/LD/Averill",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1361422.csv",
+            "Tabroom-1361423.csv",
+            "Tabroom-1361424.csv",
+            "Tabroom-1361425.csv",
+            "Tabroom-1361426.csv"
+          ],
+          "elims": []
+        },
+        {
+          "name": "Little Lex",
+          "path": "MA State Circuit 25:26/LD/Little Lex",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1412024.csv",
+            "Tabroom-1412025.csv",
+            "Tabroom-1412026.csv",
+            "Tabroom-1412027.csv",
+            "Tabroom-1412028.csv"
+          ],
+          "elims": []
         }
       ]
     }
