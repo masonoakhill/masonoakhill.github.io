@@ -3761,7 +3761,11 @@
     "MA State Circuit 25:26": {
       "tournamentOrder": [
         "Averill",
-        "Little Lex"
+        "Brookline Ball",
+        "Little Lex",
+        "Mardi Gras",
+        "Needham",
+        "St Nick"
       ],
       "tournaments": [
         {
@@ -3778,6 +3782,19 @@
           "elims": []
         },
         {
+          "name": "Brookline Ball",
+          "path": "MA State Circuit 25:26/LD/Brookline Ball",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1496399.csv",
+            "Tabroom-1496400.csv",
+            "Tabroom-1496401.csv",
+            "Tabroom-1496402.csv",
+            "Tabroom-1507686.csv"
+          ],
+          "elims": []
+        },
+        {
           "name": "Little Lex",
           "path": "MA State Circuit 25:26/LD/Little Lex",
           "entries": "entries.csv",
@@ -3787,6 +3804,45 @@
             "Tabroom-1412026.csv",
             "Tabroom-1412027.csv",
             "Tabroom-1412028.csv"
+          ],
+          "elims": []
+        },
+        {
+          "name": "Mardi Gras",
+          "path": "MA State Circuit 25:26/LD/Mardi Gras",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1389657.csv",
+            "Tabroom-1389658.csv",
+            "Tabroom-1389659.csv",
+            "Tabroom-1389660.csv",
+            "Tabroom-1389662.csv"
+          ],
+          "elims": [
+            "Tabroom-1389664.csv"
+          ]
+        },
+        {
+          "name": "Needham",
+          "path": "MA State Circuit 25:26/LD/Needham",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1503811.csv",
+            "Tabroom-1503812.csv",
+            "Tabroom-1503813.csv",
+            "Tabroom-1503814.csv"
+          ],
+          "elims": []
+        },
+        {
+          "name": "St Nick",
+          "path": "MA State Circuit 25:26/LD/St Nick",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1436346.csv",
+            "Tabroom-1436347.csv",
+            "Tabroom-1436348.csv",
+            "Tabroom-1436349.csv"
           ],
           "elims": []
         }
