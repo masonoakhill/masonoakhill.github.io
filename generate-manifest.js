@@ -217,15 +217,39 @@ function findTournamentDate(folderName, dateMap) {
     return null;
 }
 
-// Find all season folders (format: YYYY-YYYY)
+// Find all season folders.
+// Standard seasons match YYYY-YYYY (e.g. "2025-2026").
+// Custom circuits are any other folder that contains an LD/ subdirectory
+// (e.g. "MA State Circuit 25-26"). Folders starting with '.' are ignored,
+// as are node_modules and other common non-season directories.
 const rootDir = '.';
-const seasonPattern = /^\d{4}-\d{4}$/;
+const EXCLUDED_DIRS = new Set(['node_modules', 'dist', 'build', '.git', '.github']);
 
 const entries = fs.readdirSync(rootDir);
+
+const standardSeasonPattern = /^\d{4}-\d{4}$/;
+
 const seasons = entries.filter(entry => {
-    const stat = fs.statSync(path.join(rootDir, entry));
-    return stat.isDirectory() && seasonPattern.test(entry);
-}).sort().reverse();
+    if (entry.startsWith('.')) return false;
+    if (EXCLUDED_DIRS.has(entry)) return false;
+    const fullPath = path.join(rootDir, entry);
+    try {
+        const stat = fs.statSync(fullPath);
+        if (!stat.isDirectory()) return false;
+    } catch (e) { return false; }
+    // Must contain an LD/ subfolder to be treated as a season
+    return fs.existsSync(path.join(fullPath, 'LD'));
+}).sort((a, b) => {
+    // Standard YYYY-YYYY seasons sort newest-first numerically
+    const aStd = standardSeasonPattern.test(a);
+    const bStd = standardSeasonPattern.test(b);
+    if (aStd && bStd) return b.localeCompare(a);
+    // Standard seasons listed before custom circuits
+    if (aStd && !bStd) return -1;
+    if (!aStd && bStd) return 1;
+    // Custom circuits sort alphabetically
+    return a.localeCompare(b);
+});
 
 manifest.seasons = seasons;
 console.log(`Found seasons: ${seasons.join(', ')}\n`);
