@@ -48,7 +48,8 @@
         "Harvard",
         "TOCDigital2",
         "TOCDigital3",
-        "USC"
+        "USC",
+        "TOC"
       ],
       "tournaments": [
         {
@@ -849,6 +850,26 @@
             "Tabroom-1413892.csv",
             "Tabroom-1413893.csv",
             "Tabroom-1413894.csv"
+          ]
+        },
+        {
+          "name": "TOC",
+          "path": "2025-2026/LD/TOC",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363998.csv",
+            "Tabroom-1363999.csv",
+            "Tabroom-1364000.csv",
+            "Tabroom-1364001.csv",
+            "Tabroom-1364002.csv",
+            "Tabroom-1364003.csv"
+          ],
+          "elims": [
+            "Tabroom-1364005.csv",
+            "Tabroom-1364006.csv",
+            "Tabroom-1364007.csv",
+            "Tabroom-1364008.csv",
+            "Tabroom-1519164.csv"
           ]
         }
       ]
