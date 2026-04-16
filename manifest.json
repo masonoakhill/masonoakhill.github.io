@@ -1,13 +1,13 @@
 {
   "seasons": [
-    "2022-2023 【broken】",
+    "【broken】2022-2023",
     "2023-2024 LD",
     "2024-2025 LD",
     "2025-2026 LD",
-    "MA State Circuit 25:26"
+    "MA State Circuit 25:26 LD"
   ],
   "data": {
-    "2022-2023 【broken】": {
+    "【broken】2022-2023": {
       "tournamentOrder": [
         "ASU",
         "Blake",
@@ -57,7 +57,7 @@
       "tournaments": [
         {
           "name": "ASU",
-          "path": "2022-2023 【broken】/LD/ASU",
+          "path": "【broken】2022-2023/LD/ASU",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -77,7 +77,7 @@
         },
         {
           "name": "Blake",
-          "path": "2022-2023 【broken】/LD/Blake",
+          "path": "【broken】2022-2023/LD/Blake",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -97,7 +97,7 @@
         },
         {
           "name": "Duke",
-          "path": "2022-2023 【broken】/LD/Duke",
+          "path": "【broken】2022-2023/LD/Duke",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -117,14 +117,14 @@
         },
         {
           "name": "Errors",
-          "path": "2022-2023 【broken】/LD/Errors",
+          "path": "【broken】2022-2023/LD/Errors",
           "entries": null,
           "prelims": [],
           "elims": []
         },
         {
           "name": "HolyCross",
-          "path": "2022-2023 【broken】/LD/HolyCross",
+          "path": "【broken】2022-2023/LD/HolyCross",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -140,7 +140,7 @@
         },
         {
           "name": "NYC",
-          "path": "2022-2023 【broken】/LD/NYC",
+          "path": "【broken】2022-2023/LD/NYC",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -160,7 +160,7 @@
         },
         {
           "name": "UHouston",
-          "path": "2022-2023 【broken】/LD/UHouston",
+          "path": "【broken】2022-2023/LD/UHouston",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -179,7 +179,7 @@
         },
         {
           "name": "UK1",
-          "path": "2022-2023 【broken】/LD/UK1",
+          "path": "【broken】2022-2023/LD/UK1",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -198,7 +198,7 @@
         },
         {
           "name": "UK2",
-          "path": "2022-2023 【broken】/LD/UK2",
+          "path": "【broken】2022-2023/LD/UK2",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -218,7 +218,7 @@
         },
         {
           "name": "Loyola",
-          "path": "2022-2023 【broken】/LD/Loyola",
+          "path": "【broken】2022-2023/LD/Loyola",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -238,7 +238,7 @@
         },
         {
           "name": "Grapevine",
-          "path": "2022-2023 【broken】/LD/Grapevine",
+          "path": "【broken】2022-2023/LD/Grapevine",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -257,7 +257,7 @@
         },
         {
           "name": "Greenhill",
-          "path": "2022-2023 【broken】/LD/Greenhill",
+          "path": "【broken】2022-2023/LD/Greenhill",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -277,7 +277,7 @@
         },
         {
           "name": "JackHowe",
-          "path": "2022-2023 【broken】/LD/JackHowe",
+          "path": "【broken】2022-2023/LD/JackHowe",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -297,7 +297,7 @@
         },
         {
           "name": "Yale",
-          "path": "2022-2023 【broken】/LD/Yale",
+          "path": "【broken】2022-2023/LD/Yale",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -317,7 +317,7 @@
         },
         {
           "name": "NanoNagle",
-          "path": "2022-2023 【broken】/LD/NanoNagle",
+          "path": "【broken】2022-2023/LD/NanoNagle",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -337,7 +337,7 @@
         },
         {
           "name": "HeartOfTexas",
-          "path": "2022-2023 【broken】/LD/HeartOfTexas",
+          "path": "【broken】2022-2023/LD/HeartOfTexas",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -357,7 +357,7 @@
         },
         {
           "name": "HeritageHall",
-          "path": "2022-2023 【broken】/LD/HeritageHall",
+          "path": "【broken】2022-2023/LD/HeritageHall",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -375,7 +375,7 @@
         },
         {
           "name": "AppleValley",
-          "path": "2022-2023 【broken】/LD/AppleValley",
+          "path": "【broken】2022-2023/LD/AppleValley",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -395,7 +395,7 @@
         },
         {
           "name": "BlueKey",
-          "path": "2022-2023 【broken】/LD/BlueKey",
+          "path": "【broken】2022-2023/LD/BlueKey",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -415,7 +415,7 @@
         },
         {
           "name": "Meadows",
-          "path": "2022-2023 【broken】/LD/Meadows",
+          "path": "【broken】2022-2023/LD/Meadows",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -435,7 +435,7 @@
         },
         {
           "name": "Valley",
-          "path": "2022-2023 【broken】/LD/Valley",
+          "path": "【broken】2022-2023/LD/Valley",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -456,7 +456,7 @@
         },
         {
           "name": "Damus",
-          "path": "2022-2023 【broken】/LD/Damus",
+          "path": "【broken】2022-2023/LD/Damus",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -476,7 +476,7 @@
         },
         {
           "name": "Glenbrooks",
-          "path": "2022-2023 【broken】/LD/Glenbrooks",
+          "path": "【broken】2022-2023/LD/Glenbrooks",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -497,7 +497,7 @@
         },
         {
           "name": "Alta",
-          "path": "2022-2023 【broken】/LD/Alta",
+          "path": "【broken】2022-2023/LD/Alta",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -516,7 +516,7 @@
         },
         {
           "name": "Longhorn",
-          "path": "2022-2023 【broken】/LD/Longhorn",
+          "path": "【broken】2022-2023/LD/Longhorn",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -537,7 +537,7 @@
         },
         {
           "name": "Princeton",
-          "path": "2022-2023 【broken】/LD/Princeton",
+          "path": "【broken】2022-2023/LD/Princeton",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -557,7 +557,7 @@
         },
         {
           "name": "TOCDigital1",
-          "path": "2022-2023 【broken】/LD/TOCDigital1",
+          "path": "【broken】2022-2023/LD/TOCDigital1",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -577,7 +577,7 @@
         },
         {
           "name": "Strake",
-          "path": "2022-2023 【broken】/LD/Strake",
+          "path": "【broken】2022-2023/LD/Strake",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -596,7 +596,7 @@
         },
         {
           "name": "Churchill",
-          "path": "2022-2023 【broken】/LD/Churchill",
+          "path": "【broken】2022-2023/LD/Churchill",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -614,7 +614,7 @@
         },
         {
           "name": "PugetSound",
-          "path": "2022-2023 【broken】/LD/PugetSound",
+          "path": "【broken】2022-2023/LD/PugetSound",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -632,7 +632,7 @@
         },
         {
           "name": "Sunvite",
-          "path": "2022-2023 【broken】/LD/Sunvite",
+          "path": "【broken】2022-2023/LD/Sunvite",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -651,7 +651,7 @@
         },
         {
           "name": "Peninsula",
-          "path": "2022-2023 【broken】/LD/Peninsula",
+          "path": "【broken】2022-2023/LD/Peninsula",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -671,7 +671,7 @@
         },
         {
           "name": "HarvardWestlake",
-          "path": "2022-2023 【broken】/LD/HarvardWestlake",
+          "path": "【broken】2022-2023/LD/HarvardWestlake",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -691,7 +691,7 @@
         },
         {
           "name": "Lex",
-          "path": "2022-2023 【broken】/LD/Lex",
+          "path": "【broken】2022-2023/LD/Lex",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -709,7 +709,7 @@
         },
         {
           "name": "Emory",
-          "path": "2022-2023 【broken】/LD/Emory",
+          "path": "【broken】2022-2023/LD/Emory",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -730,7 +730,7 @@
         },
         {
           "name": "Columbia",
-          "path": "2022-2023 【broken】/LD/Columbia",
+          "path": "【broken】2022-2023/LD/Columbia",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -750,7 +750,7 @@
         },
         {
           "name": "GoldenDesert",
-          "path": "2022-2023 【broken】/LD/GoldenDesert",
+          "path": "【broken】2022-2023/LD/GoldenDesert",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -767,7 +767,7 @@
         },
         {
           "name": "Pennsbury",
-          "path": "2022-2023 【broken】/LD/Pennsbury",
+          "path": "【broken】2022-2023/LD/Pennsbury",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -785,7 +785,7 @@
         },
         {
           "name": "Stanford",
-          "path": "2022-2023 【broken】/LD/Stanford",
+          "path": "【broken】2022-2023/LD/Stanford",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -806,7 +806,7 @@
         },
         {
           "name": "Berkeley",
-          "path": "2022-2023 【broken】/LD/Berkeley",
+          "path": "【broken】2022-2023/LD/Berkeley",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -827,7 +827,7 @@
         },
         {
           "name": "Harvard",
-          "path": "2022-2023 【broken】/LD/Harvard",
+          "path": "【broken】2022-2023/LD/Harvard",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -849,7 +849,7 @@
         },
         {
           "name": "TOCDigital2",
-          "path": "2022-2023 【broken】/LD/TOCDigital2",
+          "path": "【broken】2022-2023/LD/TOCDigital2",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -870,7 +870,7 @@
         },
         {
           "name": "TOCDigital3",
-          "path": "2022-2023 【broken】/LD/TOCDigital3",
+          "path": "【broken】2022-2023/LD/TOCDigital3",
           "entries": "entries.csv",
           "prelims": [
             "tabroom-export (1).csv",
@@ -891,7 +891,7 @@
         },
         {
           "name": "TOC",
-          "path": "2022-2023 【broken】/LD/TOC",
+          "path": "【broken】2022-2023/LD/TOC",
           "entries": null,
           "prelims": [
             "tabroom-export (1).csv",
@@ -3990,7 +3990,7 @@
         }
       ]
     },
-    "MA State Circuit 25:26": {
+    "MA State Circuit 25:26 LD": {
       "tournamentOrder": [
         "Averill",
         "Brookline Ball",
@@ -4002,7 +4002,7 @@
       "tournaments": [
         {
           "name": "Averill",
-          "path": "MA State Circuit 25:26/LD/Averill",
+          "path": "MA State Circuit 25:26 LD/LD/Averill",
           "entries": "entries.csv",
           "prelims": [
             "Tabroom-1361422.csv",
@@ -4015,7 +4015,7 @@
         },
         {
           "name": "Brookline Ball",
-          "path": "MA State Circuit 25:26/LD/Brookline Ball",
+          "path": "MA State Circuit 25:26 LD/LD/Brookline Ball",
           "entries": "entries.csv",
           "prelims": [
             "Tabroom-1496399.csv",
@@ -4028,7 +4028,7 @@
         },
         {
           "name": "Little Lex",
-          "path": "MA State Circuit 25:26/LD/Little Lex",
+          "path": "MA State Circuit 25:26 LD/LD/Little Lex",
           "entries": "entries.csv",
           "prelims": [
             "Tabroom-1412024.csv",
@@ -4041,7 +4041,7 @@
         },
         {
           "name": "Mardi Gras",
-          "path": "MA State Circuit 25:26/LD/Mardi Gras",
+          "path": "MA State Circuit 25:26 LD/LD/Mardi Gras",
           "entries": "entries.csv",
           "prelims": [
             "Tabroom-1389657.csv",
@@ -4056,7 +4056,7 @@
         },
         {
           "name": "Needham",
-          "path": "MA State Circuit 25:26/LD/Needham",
+          "path": "MA State Circuit 25:26 LD/LD/Needham",
           "entries": "entries.csv",
           "prelims": [
             "Tabroom-1503811.csv",
@@ -4068,7 +4068,7 @@
         },
         {
           "name": "St Nick",
-          "path": "MA State Circuit 25:26/LD/St Nick",
+          "path": "MA State Circuit 25:26 LD/LD/St Nick",
           "entries": "entries.csv",
           "prelims": [
             "Tabroom-1436346.csv",
