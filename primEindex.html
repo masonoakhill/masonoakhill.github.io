@@ -338,15 +338,7 @@
 
         const normalizeName = (name) => {
             if (!name) return '';
-            const cleaned = name.toLowerCase().replace(/[^a-z\s&]/g, '').trim();
-            // For Policy teams like "Wu & Liu" vs "Liu & Wu", sort partners
-            // alphabetically so order never affects the canonical ID.
-            // LD names ("John Smith") have no "&" so are unaffected.
-            if (cleaned.includes('&')) {
-                const parts = cleaned.split('&').map(p => p.trim()).filter(Boolean).sort();
-                return parts.join(' & ');
-            }
-            return cleaned.replace(/\s+/g, ' ');
+            return name.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim();
         };
 
         const normalizeCode = (code) => {
