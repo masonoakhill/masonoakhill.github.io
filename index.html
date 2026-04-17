@@ -741,6 +741,7 @@
 
         const populateSeasonDropdown = async () => {
             const seasons = await discoverSeasons();
+            console.log('seasons:', seasons, 'manifest:', await loadManifest());
             if (seasons.length === 0) {
                 el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
                 return;
