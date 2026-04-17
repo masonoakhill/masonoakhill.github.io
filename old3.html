@@ -584,6 +584,7 @@
             }
             
             for (const row of rows) {
+                // Normalize keys to lowercase so Title Case headers (Code, Entry, Institution) still match
                 const r = Object.fromEntries(Object.entries(row).map(([k, v]) => [k.toLowerCase(), v]));
                 let code = (r.code || '').toString().trim();
                 let name = (r.entry || r.name || '').toString().trim();
@@ -740,6 +741,7 @@
 
         const populateSeasonDropdown = async () => {
             const seasons = await discoverSeasons();
+            console.log('seasons:', seasons, 'manifest:', await loadManifest());
             if (seasons.length === 0) {
                 el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
                 return;

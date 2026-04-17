@@ -3999,9 +3999,22 @@
         {
           "name": "TOC",
           "path": "2025-2026 Policy/LD/TOC",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1364025.csv",
+            "Tabroom-1364026.csv",
+            "Tabroom-1364027.csv",
+            "Tabroom-1364028.csv",
+            "Tabroom-1364029.csv",
+            "Tabroom-1364030.csv",
+            "Tabroom-1364031.csv"
+          ],
+          "elims": [
+            "Tabroom-1364033.csv",
+            "Tabroom-1364034.csv",
+            "Tabroom-1364035.csv",
+            "Tabroom-1364036.csv"
+          ]
         }
       ]
     },
