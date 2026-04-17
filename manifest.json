@@ -3993,9 +3993,376 @@
     },
     "2025-2026 Policy": {
       "tournamentOrder": [
+        "ASU",
+        "Blake",
+        "Bronx",
+        "StMarks",
+        "Loyola",
+        "NSDSO_Online",
+        "Grapevine",
+        "Greenhill",
+        "JackHowe",
+        "Yale",
+        "MidAmerica",
+        "Heritage Hall",
+        "Laird Lewis",
+        "BlueKey",
+        "Meadows",
+        "Damus",
+        "Glenbrooks",
+        "Alta",
+        "DowlingCatholic",
+        "LaCosta",
+        "LonghornClassic",
+        "Princeton",
+        "TOCDigital1",
+        "IsidoreNewman",
+        "Peninsula",
+        "MountVernon",
+        "HarvardWestlake",
+        "JeanWard",
+        "Emory",
+        "Columbia",
+        "GoldenDesert",
+        "Stanford",
+        "ThreeRivers",
+        "Berkeley",
+        "Harvard",
+        "TOCDigital2",
+        "TOCDigital3",
+        "USC",
         "TOC"
       ],
       "tournaments": [
+        {
+          "name": "ASU",
+          "path": "2025-2026 Policy/LD/ASU",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1413130.csv",
+            "Tabroom-1413131.csv",
+            "Tabroom-1413132.csv",
+            "Tabroom-1413133.csv",
+            "Tabroom-1413134.csv",
+            "Tabroom-1413135.csv"
+          ],
+          "elims": [
+            "Tabroom-1413137.csv",
+            "Tabroom-1413138.csv",
+            "Tabroom-1413139.csv",
+            "Tabroom-1474563.csv"
+          ]
+        },
+        {
+          "name": "Blake",
+          "path": "2025-2026 Policy/LD/Blake",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Bronx",
+          "path": "2025-2026 Policy/LD/Bronx",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "StMarks",
+          "path": "2025-2026 Policy/LD/StMarks",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Loyola",
+          "path": "2025-2026 Policy/LD/Loyola",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "NSDSO_Online",
+          "path": "2025-2026 Policy/LD/NSDSO_Online",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Grapevine",
+          "path": "2025-2026 Policy/LD/Grapevine",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Greenhill",
+          "path": "2025-2026 Policy/LD/Greenhill",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "JackHowe",
+          "path": "2025-2026 Policy/LD/JackHowe",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Yale",
+          "path": "2025-2026 Policy/LD/Yale",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "MidAmerica",
+          "path": "2025-2026 Policy/LD/MidAmerica",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Heritage Hall",
+          "path": "2025-2026 Policy/LD/Heritage Hall",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Laird Lewis",
+          "path": "2025-2026 Policy/LD/Laird Lewis",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "BlueKey",
+          "path": "2025-2026 Policy/LD/BlueKey",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Meadows",
+          "path": "2025-2026 Policy/LD/Meadows",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Damus",
+          "path": "2025-2026 Policy/LD/Damus",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Glenbrooks",
+          "path": "2025-2026 Policy/LD/Glenbrooks",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Alta",
+          "path": "2025-2026 Policy/LD/Alta",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1377348.csv",
+            "Tabroom-1377349.csv",
+            "Tabroom-1377350.csv",
+            "Tabroom-1377351.csv",
+            "Tabroom-1377352.csv",
+            "Tabroom-1377353.csv"
+          ],
+          "elims": [
+            "Tabroom-1377354.csv",
+            "Tabroom-1377355.csv",
+            "Tabroom-1377356.csv",
+            "Tabroom-1377357.csv"
+          ]
+        },
+        {
+          "name": "DowlingCatholic",
+          "path": "2025-2026 Policy/LD/DowlingCatholic",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "LaCosta",
+          "path": "2025-2026 Policy/LD/LaCosta",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "LonghornClassic",
+          "path": "2025-2026 Policy/LD/LonghornClassic",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Princeton",
+          "path": "2025-2026 Policy/LD/Princeton",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "TOCDigital1",
+          "path": "2025-2026 Policy/LD/TOCDigital1",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "IsidoreNewman",
+          "path": "2025-2026 Policy/LD/IsidoreNewman",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Peninsula",
+          "path": "2025-2026 Policy/LD/Peninsula",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "MountVernon",
+          "path": "2025-2026 Policy/LD/MountVernon",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "HarvardWestlake",
+          "path": "2025-2026 Policy/LD/HarvardWestlake",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "JeanWard",
+          "path": "2025-2026 Policy/LD/JeanWard",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Emory",
+          "path": "2025-2026 Policy/LD/Emory",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Columbia",
+          "path": "2025-2026 Policy/LD/Columbia",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "GoldenDesert",
+          "path": "2025-2026 Policy/LD/GoldenDesert",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Stanford",
+          "path": "2025-2026 Policy/LD/Stanford",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1329742.csv",
+            "Tabroom-1329743.csv",
+            "Tabroom-1329744.csv",
+            "Tabroom-1329745.csv",
+            "Tabroom-1329746.csv",
+            "Tabroom-1329747.csv"
+          ],
+          "elims": [
+            "Tabroom-1329748.csv",
+            "Tabroom-1329749.csv",
+            "Tabroom-1329750.csv",
+            "Tabroom-1329751.csv"
+          ]
+        },
+        {
+          "name": "ThreeRivers",
+          "path": "2025-2026 Policy/LD/ThreeRivers",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "Berkeley",
+          "path": "2025-2026 Policy/LD/Berkeley",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1493938.csv",
+            "Tabroom-1493939.csv",
+            "Tabroom-1493940.csv",
+            "Tabroom-1493941.csv",
+            "Tabroom-1493942.csv",
+            "Tabroom-1493943.csv"
+          ],
+          "elims": [
+            "Tabroom-1331503.csv",
+            "Tabroom-1493944.csv",
+            "Tabroom-1493945.csv",
+            "Tabroom-1493946.csv",
+            "Tabroom-1493947.csv"
+          ]
+        },
+        {
+          "name": "Harvard",
+          "path": "2025-2026 Policy/LD/Harvard",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1366523.csv",
+            "Tabroom-1366524.csv",
+            "Tabroom-1366525.csv",
+            "Tabroom-1366527.csv",
+            "Tabroom-1366528.csv",
+            "Tabroom-1496228.csv",
+            "Tabroom-1496229.csv"
+          ],
+          "elims": [
+            "Tabroom-1366530.csv",
+            "Tabroom-1366531.csv",
+            "Tabroom-1366532.csv",
+            "Tabroom-1366533.csv",
+            "Tabroom-1496230.csv"
+          ]
+        },
+        {
+          "name": "TOCDigital2",
+          "path": "2025-2026 Policy/LD/TOCDigital2",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "TOCDigital3",
+          "path": "2025-2026 Policy/LD/TOCDigital3",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
+        {
+          "name": "USC",
+          "path": "2025-2026 Policy/LD/USC",
+          "entries": null,
+          "prelims": [],
+          "elims": []
+        },
         {
           "name": "TOC",
           "path": "2025-2026 Policy/LD/TOC",
