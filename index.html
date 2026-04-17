@@ -92,8 +92,6 @@
                     <h1 class="text-2xl font-semibold text-white tracking-tight">LD Debate Rankings</h1>
                     <p class="text-sm text-white/40 mt-1">TOC Circuit • 
                         <select id="seasonSelect" class="bg-transparent text-white/60 outline-none border-b border-white/20 hover:border-white/40 focus:border-white/60 transition-colors cursor-pointer">
-                            <option value="2025-2026" class="bg-[#0a0a0f]">2025-2026</option>
-                            <option value="2024-2025" class="bg-[#0a0a0f]">2024-2025</option>
                         </select>
                     </p>
                 </div>
@@ -276,8 +274,8 @@
         // Constants
         const BASE_RATING = 1500;
         const BASE_K = 32;
-        const BID_MULTIPLIERS = { 'octas': 1.3, 'quarters': 1.2, 'semis': 1.1, 'finals': 1.0 };
-        const ELIM_BONUSES = { 'quarters': 10, 'semis': 20, 'finals': 30, 'winner': 40 };
+        const BID_MULTIPLIERS = { 'quads': 1.6, 'triples': 1.5, 'doubles': 1.4, 'octas': 1.3, 'quarters': 1.2, 'semis': 1.1, 'finals': 1.0 };
+        const ELIM_BONUSES = { 'doubles': 5, 'octas': 8, 'quarters': 10, 'semis': 20, 'finals': 30, 'winner': 40 };
 
         const getDirectUrl = (path) => `/${path}`;
         const fileCache = new Map();
@@ -568,6 +566,9 @@
 
         const determineBidLevel = (name) => {
             const lower = name.toLowerCase();
+            if (lower.includes('quad')) return 'quads';
+            if (lower.includes('triple')) return 'triples';
+            if (lower.includes('double')) return 'doubles';
             if (lower.includes('octas') || lower.includes('octofinals')) return 'octas';
             if (lower.includes('quarters') || lower.includes('quarterfinals')) return 'quarters';
             if (lower.includes('semis') || lower.includes('semifinals')) return 'semis';
@@ -584,10 +585,9 @@
             }
             
             for (const row of rows) {
-                const r = Object.fromEntries(Object.entries(row).map(([k, v]) => [k.toLowerCase(), v]));
-                let code = (r.code || '').toString().trim();
-                let name = (r.entry || r.name || '').toString().trim();
-                let school = (r.institution || r.school || '').toString().trim();
+                let code = (row.code || '').toString().trim();
+                let name = (row.entry || row.name || '').toString().trim();
+                let school = (row.institution || row.school || '').toString().trim();
                 
                 if (name && code) {
                     const normalizedCode = normalizeCode(code);
@@ -634,26 +634,36 @@
             return null;
         };
 
+        // Update this list whenever you add a new season folder to the repo.
+        // Standard seasons (YYYY-YYYY) are sorted newest-first automatically.
+        // Custom circuits (any other name) appear after standard seasons.
+        const KNOWN_SEASONS = [
+            '2025-2026 LD',
+            '2025-2026 Policy',
+            '2024-2025 LD',
+            '2023-2024 LD',
+            '2022-2023',
+            'MA State Circuit 25-26',
+        ];
+
         const discoverSeasons = async () => {
+            console.log('[DEBUG] discoverSeasons called');
             const manifest = await loadManifest();
-            if (manifest && manifest.seasons) {
-                return manifest.seasons.sort().reverse();
+            console.log('[DEBUG] manifest loaded:', manifest ? 'yes, seasons=' + JSON.stringify(manifest.seasons) : 'null');
+            if (manifest && manifest.seasons && manifest.seasons.length > 0) {
+                // Manifest is the source of truth — it includes all seasons
+                // including custom circuits added via generate-manifest.js
+                const stdPattern = /^\d{4}-\d{4}$/;
+                const std = manifest.seasons.filter(s => stdPattern.test(s)).sort().reverse();
+                const custom = manifest.seasons.filter(s => !stdPattern.test(s)).sort();
+                return [...std, ...custom];
             }
             
-            const currentYear = new Date().getFullYear();
-            const possibleSeasons = [];
-            for (let year = currentYear + 1; year >= 2020; year--) {
-                possibleSeasons.push(`${year}-${year + 1}`);
-            }
-            
-            const checks = await Promise.all(
-                possibleSeasons.map(async (season) => {
-                    const response = await fetch(getDirectUrl(`${season}/LD/`), { method: 'HEAD' }).catch(() => null);
-                    return response && response.ok ? season : null;
-                })
-            );
-            
-            return checks.filter(Boolean);
+            // Fallback: use the hardcoded list above if manifest can't be loaded
+            const stdPattern = /^\d{4}-\d{4}$/;
+            const std = KNOWN_SEASONS.filter(s => stdPattern.test(s)).sort().reverse();
+            const custom = KNOWN_SEASONS.filter(s => !stdPattern.test(s)).sort();
+            return [...std, ...custom];
         };
 
         const discoverTournaments = async (season, manifest) => {
@@ -739,15 +749,20 @@
         };
 
         const populateSeasonDropdown = async () => {
+            console.log('[DEBUG] populateSeasonDropdown called');
             const seasons = await discoverSeasons();
+            console.log('[DEBUG] seasons discovered:', seasons);
             if (seasons.length === 0) {
                 el.emptyState.querySelector('p').textContent = 'No seasons found. Check repository structure.';
                 return;
             }
             
-            el.seasonSelect.innerHTML = seasons.map(season => 
+            const optionsHTML = seasons.map(season => 
                 `<option value="${season}" class="bg-[#0a0a0f]">${season}</option>`
             ).join('');
+            console.log('[DEBUG] setting innerHTML to:', optionsHTML);
+            el.seasonSelect.innerHTML = optionsHTML;
+            console.log('[DEBUG] seasonSelect now has', el.seasonSelect.options.length, 'options');
             
             loadSeasonData(seasons[0]);
         };
@@ -956,20 +971,30 @@
 
                         let elimLevel = 'quarters';
                         const lower = filename.toLowerCase();
-                        if (lower.includes('oct')) elimLevel = 'octas';
+                        if (lower.includes('quad')) elimLevel = 'quads';
+                        else if (lower.includes('triple')) elimLevel = 'triples';
+                        else if (lower.includes('double')) elimLevel = 'doubles';
+                        else if (lower.includes('oct')) elimLevel = 'octas';
+                        else if (lower.includes('quarter') || lower.includes('qtr')) elimLevel = 'quarters';
                         else if (lower.includes('semi')) elimLevel = 'semis';
                         else if (lower.includes('final')) elimLevel = 'finals';
                         else {
                             if (rows.length === 1) elimLevel = 'finals';
                             else if (rows.length <= 2) elimLevel = 'semis';
                             else if (rows.length <= 4) elimLevel = 'quarters';
-                            else elimLevel = 'octas';
+                            else if (rows.length <= 8) elimLevel = 'octas';
+                            else if (rows.length <= 16) elimLevel = 'doubles';
+                            else if (rows.length <= 32) elimLevel = 'triples';
+                            else elimLevel = 'quads';
                         }
                         
                         for (const row of rows) {
                             if (row.round) {
                                 const r = row.round.toLowerCase();
-                                if (r.includes('oct')) elimLevel = 'octas';
+                                if (r.includes('quad')) elimLevel = 'quads';
+                                else if (r.includes('triple')) elimLevel = 'triples';
+                                else if (r.includes('double')) elimLevel = 'doubles';
+                                else if (r.includes('oct')) elimLevel = 'octas';
                                 else if (r.includes('quarter') || r.includes('qtr')) elimLevel = 'quarters';
                                 else if (r.includes('semi')) elimLevel = 'semis';
                                 else if (r.includes('final')) elimLevel = 'finals';
@@ -1004,8 +1029,8 @@
                                 const comp = getCompetitor(id, tName);
                                 if (!comp.tournamentStats[tName]) comp.tournamentStats[tName] = { pWins: 0, pLosses: 0, maxElim: null };
                                 
-                                const val = { 'octas': 1, 'quarters': 2, 'semis': 3, 'finals': 4, 'winner': 5 };
-                                const displayMap = { 'octas': 'Octafinals', 'quarters': 'Quarterfinals', 'semis': 'Semifinals', 'finals': 'Finals', 'winner': 'Champion' };
+                                const val = { 'quads': 1, 'triples': 2, 'doubles': 3, 'octas': 4, 'quarters': 5, 'semis': 6, 'finals': 7, 'winner': 8 };
+                                const displayMap = { 'quads': 'Quadfinals', 'triples': 'Triplefinals', 'doubles': 'Doublefinals', 'octas': 'Octafinals', 'quarters': 'Quarterfinals', 'semis': 'Semifinals', 'finals': 'Finals', 'winner': 'Champion' };
                                 
                                 const currentMax = comp.tournamentStats[tName].maxElim;
                                 const currentVal = currentMax ? val[Object.keys(displayMap).find(k => displayMap[k] === currentMax)] || 0 : 0;
@@ -1013,7 +1038,10 @@
                                 let reachedLevel = level;
                                 if (isWinner && level === 'finals') reachedLevel = 'winner';
                                 else if (isWinner) {
-                                    if (level === 'octas') reachedLevel = 'quarters';
+                                    if (level === 'quads') reachedLevel = 'triples';
+                                    else if (level === 'triples') reachedLevel = 'doubles';
+                                    else if (level === 'doubles') reachedLevel = 'octas';
+                                    else if (level === 'octas') reachedLevel = 'quarters';
                                     else if (level === 'quarters') reachedLevel = 'semis';
                                     else if (level === 'semis') reachedLevel = 'finals';
                                 }
@@ -1028,7 +1056,7 @@
                             const recordPlacement = (id, level) => {
                                 const comp = getCompetitor(id, tName);
                                 const canonId = comp.id;
-                                const levels = { 'octas': 1, 'quarters': 2, 'semis': 3, 'finals': 4, 'winner': 5 };
+                                const levels = { 'quads': 1, 'triples': 2, 'doubles': 3, 'octas': 4, 'quarters': 5, 'semis': 6, 'finals': 7, 'winner': 8 };
                                 if (!elimPlacements[canonId] || levels[level] > levels[elimPlacements[canonId]]) {
                                     elimPlacements[canonId] = level;
                                 }
