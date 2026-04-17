@@ -3995,7 +3995,6 @@
       "tournamentOrder": [
         "ASU",
         "Blake",
-        "Bronx",
         "StMarks",
         "Loyola",
         "NSDSO_Online",
@@ -4006,7 +4005,6 @@
         "MidAmerica",
         "Heritage Hall",
         "Laird Lewis",
-        "BlueKey",
         "Meadows",
         "Damus",
         "Glenbrooks",
@@ -4022,7 +4020,6 @@
         "HarvardWestlake",
         "JeanWard",
         "Emory",
-        "Columbia",
         "GoldenDesert",
         "Stanford",
         "ThreeRivers",
@@ -4056,16 +4053,23 @@
         {
           "name": "Blake",
           "path": "2025-2026 Policy/LD/Blake",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "Bronx",
-          "path": "2025-2026 Policy/LD/Bronx",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1413480.csv",
+            "Tabroom-1413481.csv",
+            "Tabroom-1413482.csv",
+            "Tabroom-1413483.csv",
+            "Tabroom-1413484.csv",
+            "Tabroom-1413485.csv",
+            "Tabroom-1413486.csv"
+          ],
+          "elims": [
+            "Tabroom-1413487.csv",
+            "Tabroom-1413488.csv",
+            "Tabroom-1413489.csv",
+            "Tabroom-1413490.csv",
+            "Tabroom-1413491.csv"
+          ]
         },
         {
           "name": "StMarks",
@@ -4133,13 +4137,6 @@
         {
           "name": "Laird Lewis",
           "path": "2025-2026 Policy/LD/Laird Lewis",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "BlueKey",
-          "path": "2025-2026 Policy/LD/BlueKey",
           "entries": null,
           "prelims": [],
           "elims": []
@@ -4257,13 +4254,6 @@
         {
           "name": "Emory",
           "path": "2025-2026 Policy/LD/Emory",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "Columbia",
-          "path": "2025-2026 Policy/LD/Columbia",
           "entries": null,
           "prelims": [],
           "elims": []
