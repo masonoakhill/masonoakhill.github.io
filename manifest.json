@@ -3166,6 +3166,7 @@
         "TOCDigital2",
         "TOCDigital3",
         "USC",
+        "NDCA",
         "TOC"
       ],
       "tournaments": [
@@ -3967,6 +3968,26 @@
             "Tabroom-1413892.csv",
             "Tabroom-1413893.csv",
             "Tabroom-1413894.csv"
+          ]
+        },
+        {
+          "name": "NDCA",
+          "path": "2025-2026 LD/LD/NDCA",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1480367.csv",
+            "Tabroom-1480368.csv",
+            "Tabroom-1480369.csv",
+            "Tabroom-1480370.csv",
+            "Tabroom-1480371.csv",
+            "Tabroom-1480372.csv"
+          ],
+          "elims": [
+            "Tabroom-1480373.csv",
+            "Tabroom-1480374.csv",
+            "Tabroom-1480375.csv",
+            "Tabroom-1480376.csv",
+            "Tabroom-1511335.csv"
           ]
         },
         {
