@@ -4016,6 +4016,7 @@
       "tournamentOrder": [
         "ASU",
         "Blake",
+        "StMarks",
         "NSDSO_Online",
         "Grapevine",
         "Greenhill",
@@ -4081,6 +4082,25 @@
             "Tabroom-1413489.csv",
             "Tabroom-1413490.csv",
             "Tabroom-1413491.csv"
+          ]
+        },
+        {
+          "name": "StMarks",
+          "path": "2025-2026 Policy/LD/StMarks",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1354713.csv",
+            "Tabroom-1354714.csv",
+            "Tabroom-1354715.csv",
+            "Tabroom-1354716.csv",
+            "Tabroom-1354717.csv",
+            "Tabroom-1354718.csv"
+          ],
+          "elims": [
+            "Tabroom-1354720.csv",
+            "Tabroom-1354721.csv",
+            "Tabroom-1354722.csv",
+            "Tabroom-1354723.csv"
           ]
         },
         {
