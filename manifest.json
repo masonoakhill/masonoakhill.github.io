@@ -4016,15 +4016,12 @@
       "tournamentOrder": [
         "ASU",
         "Blake",
-        "StMarks",
-        "Loyola",
         "NSDSO_Online",
         "Grapevine",
         "Greenhill",
         "JackHowe",
         "Yale",
         "MidAmerica",
-        "Laird Lewis",
         "Meadows",
         "Damus",
         "Glenbrooks",
@@ -4032,20 +4029,16 @@
         "DowlingCatholic",
         "LaCosta",
         "LonghornClassic",
-        "Princeton",
         "TOCDigital1",
         "Peninsula",
         "MountVernon",
-        "JeanWard",
         "Emory",
         "GoldenDesert",
         "Stanford",
-        "ThreeRivers",
         "Berkeley",
         "Harvard",
         "TOCDigital2",
         "TOCDigital3",
-        "USC",
         "NDCA",
         "TOC"
       ],
@@ -4091,25 +4084,23 @@
           ]
         },
         {
-          "name": "StMarks",
-          "path": "2025-2026 Policy/LD/StMarks",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "Loyola",
-          "path": "2025-2026 Policy/LD/Loyola",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
           "name": "NSDSO_Online",
           "path": "2025-2026 Policy/LD/NSDSO_Online",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363495.csv",
+            "Tabroom-1363496.csv",
+            "Tabroom-1363497.csv",
+            "Tabroom-1363498.csv",
+            "Tabroom-1363499.csv",
+            "Tabroom-1363500.csv"
+          ],
+          "elims": [
+            "Tabroom-1363501.csv",
+            "Tabroom-1363502.csv",
+            "Tabroom-1363503.csv",
+            "Tabroom-1363504.csv"
+          ]
         },
         {
           "name": "Grapevine",
@@ -4173,30 +4164,57 @@
         {
           "name": "Yale",
           "path": "2025-2026 Policy/LD/Yale",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1353545.csv",
+            "Tabroom-1353546.csv",
+            "Tabroom-1353547.csv",
+            "Tabroom-1353548.csv",
+            "Tabroom-1353549.csv",
+            "Tabroom-1353550.csv"
+          ],
+          "elims": [
+            "Tabroom-1353551.csv",
+            "Tabroom-1353552.csv",
+            "Tabroom-1353553.csv"
+          ]
         },
         {
           "name": "MidAmerica",
           "path": "2025-2026 Policy/LD/MidAmerica",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "Laird Lewis",
-          "path": "2025-2026 Policy/LD/Laird Lewis",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1383512.csv",
+            "Tabroom-1383513.csv",
+            "Tabroom-1383514.csv",
+            "Tabroom-1383515.csv",
+            "Tabroom-1383516.csv",
+            "Tabroom-1383517.csv"
+          ],
+          "elims": [
+            "Tabroom-1383518.csv",
+            "Tabroom-1383519.csv",
+            "Tabroom-1383520.csv",
+            "Tabroom-1383521.csv"
+          ]
         },
         {
           "name": "Meadows",
           "path": "2025-2026 Policy/LD/Meadows",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1357407.csv",
+            "Tabroom-1357408.csv",
+            "Tabroom-1357409.csv",
+            "Tabroom-1357410.csv",
+            "Tabroom-1357411.csv",
+            "Tabroom-1357412.csv"
+          ],
+          "elims": [
+            "Tabroom-1357414.csv",
+            "Tabroom-1357415.csv",
+            "Tabroom-1357416.csv"
+          ]
         },
         {
           "name": "Damus",
@@ -4279,51 +4297,95 @@
         {
           "name": "LaCosta",
           "path": "2025-2026 Policy/LD/LaCosta",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1405635.csv",
+            "Tabroom-1405636.csv",
+            "Tabroom-1405637.csv",
+            "Tabroom-1405638.csv",
+            "Tabroom-1405639.csv",
+            "Tabroom-1405640.csv"
+          ],
+          "elims": [
+            "Tabroom-1405642.csv",
+            "Tabroom-1405643.csv",
+            "Tabroom-1405644.csv"
+          ]
         },
         {
           "name": "LonghornClassic",
           "path": "2025-2026 Policy/LD/LonghornClassic",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "Princeton",
-          "path": "2025-2026 Policy/LD/Princeton",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1319171.csv",
+            "Tabroom-1319172.csv",
+            "Tabroom-1319173.csv",
+            "Tabroom-1319174.csv",
+            "Tabroom-1319175.csv",
+            "Tabroom-1319176.csv"
+          ],
+          "elims": [
+            "Tabroom-1319177.csv",
+            "Tabroom-1319178.csv",
+            "Tabroom-1319179.csv",
+            "Tabroom-1319180.csv",
+            "Tabroom-1319181.csv"
+          ]
         },
         {
           "name": "TOCDigital1",
           "path": "2025-2026 Policy/LD/TOCDigital1",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363644.csv",
+            "Tabroom-1363645.csv",
+            "Tabroom-1363646.csv",
+            "Tabroom-1363647.csv",
+            "Tabroom-1363648.csv",
+            "Tabroom-1363649.csv"
+          ],
+          "elims": [
+            "Tabroom-1363651.csv",
+            "Tabroom-1363652.csv",
+            "Tabroom-1363653.csv",
+            "Tabroom-1363654.csv"
+          ]
         },
         {
           "name": "Peninsula",
           "path": "2025-2026 Policy/LD/Peninsula",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1343404.csv",
+            "Tabroom-1343405.csv",
+            "Tabroom-1343406.csv",
+            "Tabroom-1343407.csv",
+            "Tabroom-1343408.csv",
+            "Tabroom-1343409.csv"
+          ],
+          "elims": [
+            "Tabroom-1343411.csv",
+            "Tabroom-1343412.csv",
+            "Tabroom-1343413.csv",
+            "Tabroom-1468479.csv"
+          ]
         },
         {
           "name": "MountVernon",
           "path": "2025-2026 Policy/LD/MountVernon",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "JeanWard",
-          "path": "2025-2026 Policy/LD/JeanWard",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1342077.csv",
+            "Tabroom-1342078.csv",
+            "Tabroom-1342079.csv",
+            "Tabroom-1342080.csv",
+            "Tabroom-1342081.csv"
+          ],
+          "elims": [
+            "Tabroom-1342082.csv",
+            "Tabroom-1342083.csv",
+            "Tabroom-1342084.csv"
+          ]
         },
         {
           "name": "Emory",
@@ -4385,13 +4447,6 @@
           ]
         },
         {
-          "name": "ThreeRivers",
-          "path": "2025-2026 Policy/LD/ThreeRivers",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
           "name": "Berkeley",
           "path": "2025-2026 Policy/LD/Berkeley",
           "entries": "entries.csv",
@@ -4435,23 +4490,42 @@
         {
           "name": "TOCDigital2",
           "path": "2025-2026 Policy/LD/TOCDigital2",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363751.csv",
+            "Tabroom-1363752.csv",
+            "Tabroom-1363753.csv",
+            "Tabroom-1363754.csv",
+            "Tabroom-1363755.csv",
+            "Tabroom-1363756.csv"
+          ],
+          "elims": [
+            "Tabroom-1363757.csv",
+            "Tabroom-1363758.csv",
+            "Tabroom-1363759.csv",
+            "Tabroom-1363760.csv",
+            "Tabroom-1363761.csv"
+          ]
         },
         {
           "name": "TOCDigital3",
           "path": "2025-2026 Policy/LD/TOCDigital3",
-          "entries": null,
-          "prelims": [],
-          "elims": []
-        },
-        {
-          "name": "USC",
-          "path": "2025-2026 Policy/LD/USC",
-          "entries": null,
-          "prelims": [],
-          "elims": []
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1363862.csv",
+            "Tabroom-1363863.csv",
+            "Tabroom-1363864.csv",
+            "Tabroom-1363865.csv",
+            "Tabroom-1363866.csv",
+            "Tabroom-1363867.csv"
+          ],
+          "elims": [
+            "Tabroom-1363868.csv",
+            "Tabroom-1363869.csv",
+            "Tabroom-1363870.csv",
+            "Tabroom-1363871.csv",
+            "Tabroom-1363872.csv"
+          ]
         },
         {
           "name": "NDCA",
