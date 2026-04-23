@@ -4033,6 +4033,7 @@
         "TOCDigital1",
         "Peninsula",
         "MountVernon",
+        "JeanWard",
         "Emory",
         "GoldenDesert",
         "Stanford",
@@ -4405,6 +4406,22 @@
             "Tabroom-1342082.csv",
             "Tabroom-1342083.csv",
             "Tabroom-1342084.csv"
+          ]
+        },
+        {
+          "name": "JeanWard",
+          "path": "2025-2026 Policy/LD/JeanWard",
+          "entries": "entries.csv",
+          "prelims": [
+            "Tabroom-1454466.csv",
+            "Tabroom-1454467.csv",
+            "Tabroom-1454468.csv",
+            "Tabroom-1454469.csv",
+            "Tabroom-1454470.csv"
+          ],
+          "elims": [
+            "Tabroom-1454472.csv",
+            "Tabroom-1454473.csv"
           ]
         },
         {
